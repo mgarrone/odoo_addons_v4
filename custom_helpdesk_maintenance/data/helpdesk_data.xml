@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="type_actualizacion" model="helpdesk.ticket.type">
+            <field name="name">Actualización de versión</field>
+        </record>
+        <record id="type_calibracion" model="helpdesk.ticket.type">
+            <field name="name">Calibración</field>
+        </record>
+        <record id="type_commissioning" model="helpdesk.ticket.type">
+            <field name="name">Commissioning</field>
+        </record>
+        <record id="type_errores_robot" model="helpdesk.ticket.type">
+            <field name="name">Errores Robot</field>
+        </record>
+        <record id="type_errores_operario" model="helpdesk.ticket.type">
+            <field name="name">Errores Operario</field>
+        </record>
+        <record id="type_problema_erp" model="helpdesk.ticket.type">
+            <field name="name">Problema ERP - Soft Gestión</field>
+        </record>
+        <record id="type_problemas_energia" model="helpdesk.ticket.type">
+            <field name="name">Problemas de energía</field>
+        </record>
+        <record id="type_soporte_consulta" model="helpdesk.ticket.type">
+            <field name="name">Soporte/consulta</field>
+        </record>
+        <record id="type_tareas" model="helpdesk.ticket.type">
+            <field name="name">Tareas</field>
+        </record>
+        <record id="type_envio_retiro" model="helpdesk.ticket.type">
+            <field name="name">Envío/Retiro</field>
+        </record>
+        <record id="type_preventivo_visita" model="helpdesk.ticket.type">
+            <field name="name">Preventivo/Visita</field>
+        </record>
+    </data>
+</odoo>

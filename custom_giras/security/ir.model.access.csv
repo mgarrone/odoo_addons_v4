@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_maintenance_giras_user,maintenance.giras.user,model_maintenance_giras,base.group_user,1,1,1,1

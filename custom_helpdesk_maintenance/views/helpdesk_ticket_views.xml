@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_helpdesk_ticket_form_inherit" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.form.inherit.custom</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="inherit_id" ref="helpdesk.helpdesk_ticket_view_form"/>
+        <field name="arch" type="xml">
+            
+            <xpath expr="//header" position="inside">
+                <button name="action_create_maintenance_request" 
+                        type="object" 
+                        string="Crear Mantenimiento" 
+                        class="oe_highlight" 
+                        invisible="maintenance_request_id != False"/>
+            </xpath>
+
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_maintenance_requests" 
+                        type="object" 
+                        class="oe_stat_button" 
+                        icon="fa-wrench" 
+                        invisible="maintenance_count == 0">
+                    <field name="maintenance_count" widget="statinfo" string="Mantenimiento"/>
+                </button>
+            </xpath>
+
+            <xpath expr="//sheet/group" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <xpath expr="//sheet/group" position="after">
+                <group>
+                    <group>
+                        <field name="equipment_id"/>
+                        
+                        <field name="analytic_account_id" 
+                               groups="analytic.group_analytic_accounting" 
+                               invisible="not context.get('use_analytic_account', True)"/>
+                        
+                        <field name="tour_id"/>
+                        <field name="team_id"/>
+                        <field name="user_id" widget="many2one_avatar_user"/>
+                        <field name="priority" widget="priority"/>
+                        <field name="ticket_type_id"/>
+                        <field name="tag_ids" widget="many2many_tags"/>
+                    </group>
+                    <group>
+                        <field name="partner_id"/>
+                        <field name="partner_phone"/>
+                        <field name="partner_email"/>
+                        <field name="employee_follower_ids" widget="many2many_tags"/>
+                        <field name="x_resuelto_ia"/>
+                        <field name="parent_ticket_id"/>
+                        <field name="evidence_ids" widget="many2many_binary"/>
+                        
+                        <field name="maintenance_request_id" invisible="1"/>
+                        <field name="maintenance_request_ids" invisible="1"/>
+                        <field name="maintenance_count" invisible="1"/>
+                    </group>
+                </group>
+                
+                <div class="mt-3">
+                    <label for="progress" string="Progreso" class="oe_inline fw-bold me-3"/>
+                    <field name="progress" widget="statusbar" options="{'clickable': '1'}" class="oe_inline"/>
+                </div>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>

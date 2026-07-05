@@ -1,0 +1,15 @@
+<odoo>
+    <record id="hr_equipment_view_form_inherit_customer" model="ir.ui.view">
+        <field name="name">maintenance.equipment.form.inherit.customer</field>
+        <field name="model">maintenance.equipment</field>
+        <field name="inherit_id" ref="maintenance.hr_equipment_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='model']" position="after">
+                <field name="partner_id" string="Cliente / Farmacia"/>
+            </xpath>
+            <xpath expr="//field[@name='x_mat_oportunidad']" position="after">
+                <field name="robot_out_of_service" widget="boolean_toggle"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

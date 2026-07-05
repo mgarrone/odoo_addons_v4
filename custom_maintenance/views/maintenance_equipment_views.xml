@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_maintenance_equipment_form_inherit_modulo_maintenance" model="ir.ui.view">
+        <field name="name">maintenance.equipment.form.inherit.modulo.maintenance</field>
+        <field name="model">maintenance.equipment</field>
+        <field name="inherit_id" ref="maintenance.hr_equipment_view_form"/>
+        <field name="arch" type="xml">
+            <!-- Ocultar campo nativo model y reemplazar por x_mat_modelo -->
+            <!-- <xpath expr="//field[@name='model']" position="replace">
+                <field name="x_mat_modelo"/>
+            </xpath> -->
+
+            <!-- Gira debajo de la categoría del equipo -->
+            <xpath expr="//field[@name='category_id']" position="after">
+                <field name="x_mat_gira"/>
+            </xpath>
+
+            <!-- assign_date visible, Cuenta analítica y Oportunidad debajo del owner -->
+            <!-- <xpath expr="//field[@name='owner_user_id']" position="after"> -->
+            <xpath expr="//field[@name='employee_id']" position="after">
+                <field name="assign_date" string="Fecha de asignación"/>
+                <field name="x_mat_cuenta_analitica"/>
+                <field name="x_mat_oportunidad"/>
+            </xpath>
+
+            <!-- Ubicación debajo de location -->
+            <!-- <xpath expr="//field[@name='location']" position="after">
+                <field name="x_mat_ubicacion"/>
+            </xpath> -->
+
+            <!-- Llenar la pestaña existente que contiene serial_no (Product Information) -->
+            <xpath expr="//field[@name='serial_no']/ancestor::page" position="inside">
+                <group name="info_producto_group_custom">
+                    <group>
+                        <field name="partner_id" string="Proveedor"/>
+                        <field name="partner_ref" string="Referencia de proveedor"/>
+                        <field name="x_mat_modelo"/>
+                        <field name="serial_no" string="Número de serie"/>
+                        <field name="x_mat_alto" string="Alto (m)"/>
+                        <field name="x_mat_largo" string="Largo (m)"/>
+                        <field name="x_mat_ancho" string="Ancho (m)"/>
+                        <field name="x_mat_espirales"/>
+                        <field name="x_mat_easy_load" string="Easy Load"/>
+                        <field name="x_mat_buffer_easy_load" string="Buffer Easy Load (m)"/>
+                        <field name="x_mat_transporte"/>
+                        <field name="x_mat_modulo_limpieza" string="Módulo de limpieza"/>
+                        <field name="x_mat_vidrios_laterales" string="Vidrios laterales"/>
+                        <field name="x_mat_vidrios_piso" string="Vidrios piso"/>
+                        <field name="x_mat_vidrios_fondo"/>
+                        <field name="x_mat_ubicacion"/>
+                    </group>
+                    <group>
+                        <field name="effective_date" string="Fecha efectiva"/>
+                        <field name="cost" string="Costo"/>
+                        <field name="warranty_date" string="Fecha de vencimiento de la garantía"/>
+                    </group>
+                </group>
+            </xpath>
+
+            <!-- Ocultar los campos originales para evitar duplicidad si ya estaban en la página -->
+            <xpath expr="//field[@name='model']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='serial_no']/ancestor::page//field[@name='partner_id' and not(parent::group[@name='info_producto_group_custom'])]" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='serial_no']/ancestor::page//field[@name='partner_ref' and not(parent::group[@name='info_producto_group_custom'])]" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='serial_no']/ancestor::page//field[@name='serial_no' and not(parent::group[@name='info_producto_group_custom'])]" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='serial_no']/ancestor::page//field[@name='effective_date' and not(parent::group[@name='info_producto_group_custom'])]" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='serial_no']/ancestor::page//field[@name='cost' and not(parent::group[@name='info_producto_group_custom'])]" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='serial_no']/ancestor::page//field[@name='warranty_date' and not(parent::group[@name='info_producto_group_custom'])]" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>

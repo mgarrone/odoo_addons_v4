@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="crm_lead_view_form_custom" model="ir.ui.view">
+            <field name="name">crm.lead.form.custom.automatiza</field>
+            <field name="model">crm.lead</field>
+            <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+            <field name="priority">99</field>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='partner_id']" position="attributes">
+                    <attribute name="context">{'res_partner_search_mode': 'customer', 'search_by_company_name': True}</attribute>
+                </xpath>
+
+                <xpath expr="//group[@name='lead_partner']/field[@name='partner_name']" position="attributes">
+                    <attribute name="string">Nombre de la farmacia</attribute>
+                </xpath>
+
+                <xpath expr="//group[@name='opportunity_partner']/field[@name='partner_id']" position="after">
+                    <field name="partner_name" string="Nombre de la farmacia"/>
+                    <label for="street" string="Dirección"/>
+                    <div class="o_address_format">
+                        <field name="street" placeholder="Calle..." class="o_address_street"/>
+                        <field name="street2" placeholder="Calle 2..." class="o_address_street"/>
+                        <field name="city" placeholder="Ciudad" class="o_address_city"/>
+                        <field name="state_id" class="o_address_state" placeholder="Provincia" options="{'no_open': True}"/>
+                        <field name="zip" placeholder="C.P." class="o_address_zip"/>
+                        <field name="country_id" placeholder="País" class="o_address_country" options="{'no_open': True, 'no_create': True}"/>
+                    </div>
+                </xpath>
+
+                <xpath expr="//field[@name='tag_ids']" position="after">
+                    <field name="x_proyecto_id"/>
+                </xpath>
+
+                <xpath expr="//page[@name='extra']" position="replace">
+                    <page name="extra" string="Información adicional" invisible="type == 'opportunity'">
+                        <group col="2">
+                            <group string="INFORMACIÓN DE LA COMPAÑÍA">
+                                <field name="x_id_cliente"/>
+                                <field name="website" widget="url" placeholder="Por ejemplo, https://www.odoo.com"/>
+                                <field name="lang_id" options="{'no_quick_create': True, 'no_create_edit': True, 'no_open': True}"/>
+                            </group>
+                            <group string="CONTACTOS DE LA EMPRESA">
+                                <field name="x_contacto_ids"
+                                       nolabel="1"
+                                       colspan="2"
+                                       domain="[('parent_id', '=', partner_id)]">
+                                    <tree editable="bottom">
+                                        <field name="name" string="Nombre"/>
+                                        <field name="function" string="Puesto"/>
+                                        <field name="mobile" string="Celular"/>
+                                        <field name="email" string="Email"/>
+                                    </tree>
+                                </field>
+                            </group>
+                            <group string="MARKETING" name="categorization">
+                                <field name="campaign_id" options="{'create_name_field': 'title'}"/>
+                                <field name="medium_id"/>
+                                <field name="source_id"/>
+                                <field name="referred"/>
+                                <field name="x_canal_de_ingreso"/>
+                            </group>
+                            <group string="SEGUIMIENTO">
+                                <field name="x_responsable_comercial_id" widget="many2one_avatar_user"/>
+                                <field name="x_responsable_proyecto_id" widget="many2one_avatar_user"/>
+                                <field name="team_id" options="{'no_open': True, 'no_create': True}"/>
+                                <field name="x_complejidad" widget="radio" options="{'horizontal': true}"/>
+                                <field name="day_open" readonly="1"/>
+                                <field name="day_close" readonly="1"/>
+                            </group>
+                        </group>
+                        <group string="Análisis" groups="base.group_no_one">
+                            <field name="date_open" readonly="1"/>
+                            <field name="date_closed" readonly="1"/>
+                        </group>
+                    </page>
+                </xpath>
+
+                <xpath expr="//page[@name='lead']" position="replace">
+                    <page name="lead" string="Información adicional" invisible="type == 'lead'">
+                        <group col="2">
+                            <group string="INFORMACIÓN DE LA COMPAÑÍA">
+                                <field name="x_id_cliente"/>
+                                <field name="website" widget="url" placeholder="Por ejemplo, https://www.odoo.com"/>
+                                <field name="lang_id" options="{'no_quick_create': True, 'no_create_edit': True, 'no_open': True}"/>
+                            </group>
+                            <group string="CONTACTOS DE LA EMPRESA">
+                                <field name="x_contacto_ids"
+                                       nolabel="1"
+                                       colspan="2"
+                                       domain="[('parent_id', '=', partner_id)]">
+                                    <tree editable="bottom">
+                                        <field name="name" string="Nombre"/>
+                                        <field name="function" string="Puesto"/>
+                                        <field name="mobile" string="Celular"/>
+                                        <field name="email" string="Email"/>
+                                    </tree>
+                                </field>
+                            </group>
+                            <group string="MARKETING">
+                                <field name="campaign_id" options="{'create_name_field': 'title'}"/>
+                                <field name="medium_id"/>
+                                <field name="source_id"/>
+                                <field name="referred"/>
+                                <field name="x_canal_de_ingreso"/>
+                            </group>
+                            <group string="SEGUIMIENTO">
+                                <field name="x_responsable_comercial_id" widget="many2one_avatar_user"/>
+                                <field name="x_responsable_proyecto_id" widget="many2one_avatar_user"/>
+                                <field name="team_id" options="{'no_open': True, 'no_create': True}"/>
+                                <field name="x_complejidad" widget="radio" options="{'horizontal': true}"/>
+                                <field name="day_open" readonly="1"/>
+                                <field name="day_close" readonly="1"/>
+                            </group>
+                        </group>
+                        <group string="Análisis" groups="base.group_no_one">
+                            <field name="date_open" readonly="1"/>
+                            <field name="date_closed" readonly="1"/>
+                        </group>
+                    </page>
+                </xpath>
+
+                <xpath expr="//notebook" position="inside">
+                    <page string="Cronología" name="automatiza_cronologia">
+                        <group col="2">
+                            <group>
+                                <group string="Fechas de Seguimiento">
+                                    <field name="x_studio_ingreso_consulta"/>
+                                    <field name="x_studio_date_field_3vh_1jau2o5rh"/>
+                                    <field name="x_studio_videollamada"/>
+                                    <field name="x_studio_reunin_presencial"/>
+                                    <field name="x_studio_envo_ffq"/>
+                                    <field name="x_studio_envo_presentacin"/>
+                                </group>
+                                <group string="Post Instalación">
+                                    <field name="x_studio_acta_ec"/>
+                                    <field name="x_studio_visita_de_cortesa"/>
+                                    <field name="x_fecha_torta_aniversario"/>
+                                    <field name="x_fecha_foto_aniversario"/>
+                                </group>
+                            </group>
+                            <group string="Fechas de Cotización">
+                                <field name="x_studio_cotizacin"/>
+                                <field name="x_studio_firma_cotizacin"/>
+                                <field name="x_studio_vencimiento"/>
+                            </group>
+                        </group>
+                    </page>
+
+                    <page string="Configuración de Equipos" name="automatiza_configuracion_equipos">
+                        <separator string="Detalle de equipos cotizados"/>
+                        <field name="x_detalle_de_equipos"
+                               nolabel="1"
+                               colspan="4"
+                               mode="tree,form"
+                               context="{'default_opportunity_id': id}">
+                            <tree>
+                                <field name="scenario" string="Escenario"/>
+                                <field name="name" string="ID/Referencia"/>
+                                <field name="product_id" string="Producto"/>
+                                <field name="height" string="Alto (m)"/>
+                                <field name="length" string="Largo"/>
+                                <field name="width" string="Ancho (m)"/>
+                                <field name="max_capacity" string="Capacidad máxima"/>
+                                <field name="min_capacity" optional="hide"/>
+                                <field name="location" optional="hide"/>
+                                <field name="spirals" optional="hide"/>
+                                <field name="conveyor_belt" optional="hide"/>
+                                <field name="side_glasses" optional="hide"/>
+                                <field name="back_glass" optional="hide"/>
+                                <field name="floor_glass" optional="hide"/>
+                                <field name="easy_load" optional="hide"/>
+                                <field name="easy_load_buffer" optional="hide"/>
+                                <field name="cleaning_module" optional="hide"/>
+                                <field name="second_picking_arm" optional="hide"/>
+                                <field name="second_input_belt" optional="hide"/>
+                                <field name="refrigeration_module" optional="hide"/>
+                                <field name="other_complement" optional="hide"/>
+                                <field name="comments" optional="hide"/>
+                            </tree>
+                        </field>
+
+                        <separator string="Cotizaciones creadas"/>
+                        <field name="x_cotizaciones" nolabel="1" readonly="1" colspan="4">
+                            <tree>
+                                <field name="name" string="Cotización"/>
+                                <field name="partner_id" string="Cliente"/>
+                                <field name="amount_total" string="Total"/>
+                                <field name="state" string="Estado"/>
+                            </tree>
+                        </field>
+
+                        <group col="2">
+                            <group string="Datos de cotización">
+                                <field name="x_studio_cotizacin_bd"/>
+                                <field name="x_studio_char_field_4bc_1jbo2kegr" widget="url"/>
+                                <field name="x_studio_modelo_comercial_1"/>
+                                <field name="x_studio_tipo_de_cotizacin"/>
+                            </group>
+                            <group string="Valores comerciales">
+                                <field name="x_cantidad_robots"/>
+                                <field name="x_studio_hardware"/>
+                                <field name="x_studio_servicio"/>
+                                <field name="x_studio_descuento_aplicado_"/>
+                                <field name="x_studio_total_neto"/>
+                            </group>
+                        </group>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="crm_lead_view_tree_cotizacion" model="ir.ui.view">
+            <field name="name">crm.lead.tree.cotizacion</field>
+            <field name="model">crm.lead</field>
+            <field name="arch" type="xml">
+                <tree string="Oportunidades - Vista Cotización"
+                      decoration-info="probability &lt; 30"
+                      decoration-warning="probability &gt;= 30 and probability &lt; 80"
+                      decoration-success="probability &gt;= 80">
+                    <field name="name"/>
+                    <field name="partner_id"/>
+                    <field name="user_id"/>
+                    <field name="stage_id"/>
+                    <field name="probability" invisible="1"/>
+                    <field name="x_studio_cotizacin_bd"/>
+                    <field name="x_studio_total_neto"/>
+                    <field name="x_studio_modelo_comercial_1"/>
+                    <field name="x_studio_tipo_de_cotizacin"/>
+                    <field name="x_cantidad_robots"/>
+                    <field name="expected_revenue"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="crm_lead_view_tree_cronologia" model="ir.ui.view">
+            <field name="name">crm.lead.tree.cronologia</field>
+            <field name="model">crm.lead</field>
+            <field name="arch" type="xml">
+                <tree string="Oportunidades - Vista Cronología" decoration-muted="probability == 0">
+                    <field name="name"/>
+                    <field name="partner_id"/>
+                    <field name="x_studio_ingreso_consulta"/>
+                    <field name="x_studio_date_field_3vh_1jau2o5rh" string="Primer Llamada"/>
+                    <field name="x_studio_videollamada"/>
+                    <field name="x_studio_reunin_presencial"/>
+                    <field name="x_studio_envo_ffq"/>
+                    <field name="x_studio_envo_presentacin"/>
+                    <field name="x_studio_cotizacin"/>
+                    <field name="x_studio_firma_cotizacin"/>
+                    <field name="stage_id"/>
+                    <field name="probability"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="crm_lead_view_tree_producto" model="ir.ui.view">
+            <field name="name">crm.lead.tree.producto</field>
+            <field name="model">crm.lead</field>
+            <field name="arch" type="xml">
+                <tree string="Oportunidades - Vista Producto">
+                    <field name="name"/>
+                    <field name="partner_id"/>
+                    <field name="x_cantidad_robots"/>
+                    <field name="x_studio_hardware"/>
+                    <field name="x_studio_servicio"/>
+                    <field name="x_studio_total_neto"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="crm_lead_view_tree_compacta" model="ir.ui.view">
+            <field name="name">crm.lead.tree.compacta</field>
+            <field name="model">crm.lead</field>
+            <field name="arch" type="xml">
+                <tree string="Oportunidades - Vista Compacta" decoration-success="probability &gt;= 80">
+                    <field name="name"/>
+                    <field name="partner_id"/>
+                    <field name="user_id"/>
+                    <field name="stage_id"/>
+                    <field name="probability"/>
+                    <field name="expected_revenue"/>
+                    <field name="x_studio_total_neto"/>
+                </tree>
+            </field>
+        </record>
+    </data>
+</odoo>

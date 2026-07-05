@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_x_lista_de_robots_tree" model="ir.ui.view">
+        <field name="name">x.lista.de.robots.tree</field>
+        <field name="model">x_lista_de_robots</field>
+        <field name="arch" type="xml">
+            <tree string="Escenarios de Productos">
+                <field name="project_id"/>
+                <field name="opportunity_id"/>
+                <field name="scenario"/>
+                <field name="name"/>
+                <field name="product_id"/>
+                <field name="max_capacity"/>
+                <field name="height"/>
+                <field name="length"/>
+                <field name="width"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_x_lista_de_robots_form" model="ir.ui.view">
+        <field name="name">x.lista.de.robots.form</field>
+        <field name="model">x_lista_de_robots</field>
+        <field name="arch" type="xml">
+            <form string="Escenario de producto">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Ej: Rowa 1 - Farmacia X"/>
+                        </h1>
+                    </div>
+                    <field name="tag_ids" widget="many2many_tags" nolabel="1"/>
+                    <group>
+                        <group>
+                            <field name="project_id"/>
+                            <field name="product_id"/>
+                            <field name="height" string="Alto (m)"/>
+                            <field name="length" string="Largo (m)"/>
+                            <field name="width" string="Ancho (m)"/>
+                            <field name="scenario"/>
+                            <field name="opportunity_id"/>
+                            <field name="ffq_url" widget="url" placeholder="URL de FFQ"/>
+                        </group>
+                        <group>
+                            <field name="min_capacity"/>
+                            <field name="max_capacity"/>
+                            <field name="conveyor_belt" string="Cinta de transporte (m)"/>
+                            <field name="deflectors"/>
+                            <field name="easy_load"/>
+                            <field name="spirals"/>
+                            <field name="cleaning_module"/>
+                            <field name="side_glasses"/>
+                            <field name="back_glass"/>
+                            <field name="floor_glass"/>
+                            <field name="location"/>
+                            <field name="other_complement"/>
+                            <field name="comments"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Details">
+                            <field name="comments" string="Descripción"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_x_lista_de_robots_search" model="ir.ui.view">
+        <field name="name">x.lista.de.robots.search</field>
+        <field name="model">x_lista_de_robots</field>
+        <field name="arch" type="xml">
+            <search string="Escenarios de Productos">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="opportunity_id"/>
+                <field name="product_id"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Proyecto" name="group_project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Oportunidad" name="group_opportunity" context="{'group_by': 'opportunity_id'}"/>
+                    <filter string="Producto" name="group_product" context="{'group_by': 'product_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_x_lista_de_robots" model="ir.actions.act_window">
+        <field name="name">Escenarios de Productos</field>
+        <field name="res_model">x_lista_de_robots</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'search_default_group_project': 1}</field>
+    </record>
+
+    <menuitem id="menu_x_lista_de_robots"
+              name="Escenarios de Productos"
+              parent="project.menu_project_config"
+              action="action_x_lista_de_robots"
+              sequence="80"/>
+</odoo>

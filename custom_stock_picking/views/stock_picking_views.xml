@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_picking_form_inherit_custom_stock" model="ir.ui.view">
+        <field name="name">stock.picking.form.inherit.custom.stock</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='origin']" position="after">
+                <field name="x_mat_equipo_destino" string="Equipo destino"/>
+            </xpath>
+            <xpath expr="//field[@name='x_mat_equipo_destino']" position="after">
+                <field name="x_mat_empleado_destino" string="Entregado a"/>
+            </xpath>
+            <xpath expr="//field[@name='x_mat_empleado_destino']" position="after">
+                <field name="x_fecha_recepcion"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_project_project_form_automatiza" model="ir.ui.view">
+        <field name="name">project.project.form.automatiza</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='tag_ids']" position="after">
+                <field name="bd_robot_code"/>
+                <field name="bd_pid"/>
+            </xpath>
+
+            <xpath expr="//field[@name='user_id']" position="before">
+                <field name="id" string="ID" readonly="1"/>
+            </xpath>
+
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="opportunity_id"/>
+            </xpath>
+
+            <xpath expr="//field[@name='description']" position="after">
+                <separator string="DETALLE DE EQUIPOS"/>
+                <field name="robot_scenario_ids"
+                       nolabel="1"
+                       mode="tree,form"
+                       class="w-100"
+                       context="{'default_project_id': id}">
+                    <tree>
+                        <field name="scenario" string="Escenario"/>
+                        <field name="name" string="ID/Referencia"/>
+                        <field name="product_id" string="Producto"/>
+                        <field name="height" string="Alto (m)"/>
+                        <field name="length" string="Largo"/>
+                        <field name="width" string="Ancho (m)"/>
+                        <field name="max_capacity" string="Capacidad máxima"/>
+                    </tree>
+                    <form string="Crear Escenarios de productos">
+                        <sheet>
+                            <div class="oe_title">
+                                <h1>
+                                    <field name="name" placeholder="Ej: Rowa 1 - Farmacia X"/>
+                                </h1>
+                            </div>
+                            <field name="tag_ids" widget="many2many_tags" nolabel="1"/>
+                            <group>
+                                <group>
+                                    <field name="project_id"/>
+                                    <field name="product_id"/>
+                                    <field name="height" string="Alto (m)"/>
+                                    <field name="length" string="Largo (m)"/>
+                                    <field name="width" string="Ancho (m)"/>
+                                    <field name="scenario"/>
+                                    <field name="opportunity_id"/>
+                                    <field name="ffq_url" widget="url" placeholder="URL de FFQ"/>
+                                </group>
+                                <group>
+                                    <field name="min_capacity"/>
+                                    <field name="max_capacity"/>
+                                    <field name="conveyor_belt" string="Cinta de transporte (m)"/>
+                                    <field name="deflectors"/>
+                                    <field name="easy_load"/>
+                                    <field name="spirals"/>
+                                    <field name="cleaning_module"/>
+                                    <field name="side_glasses"/>
+                                    <field name="back_glass"/>
+                                    <field name="floor_glass"/>
+                                    <field name="location"/>
+                                    <field name="other_complement"/>
+                                    <field name="comments"/>
+                                </group>
+                            </group>
+                            <notebook>
+                                <page string="Details">
+                                    <field name="comments" string="Descripción"/>
+                                </page>
+                            </notebook>
+                        </sheet>
+                    </form>
+                </field>
+            </xpath>
+        </field>
+    </record>
+</odoo>
