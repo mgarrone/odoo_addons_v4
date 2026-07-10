@@ -10,21 +10,6 @@ class HelpdeskTicket(models.Model):
     analytic_account_id = fields.Many2one('account.analytic.account', string='Cuenta Analítica')
     x_resuelto_ia = fields.Boolean(string='Resuelto exclusivamente con IA')
     
-    # Creamos un campo relacionado que "mira" dentro del equipo seleccionado
-    # equipment_id es el campo nativo de Odoo que relaciona la solicitud con el equipo
-    suspended_support = fields.Boolean(
-        string='Soporte Suspendido', 
-        related='equipment_id.suspended_support', 
-        store=True, 
-        readonly=True
-    )
-    
-    robot_out_of_service = fields.Boolean(
-        string='Robot Fuera de Servicio',
-        related='equipment_id.robot_out_of_service',
-        store=True,
-        readonly=True
-    )
     @api.onchange('equipment_id')
     def _onchange_equipment_id(self):
         if self.equipment_id:
@@ -109,7 +94,9 @@ class HelpdeskTicket(models.Model):
                         vals['description'] = checklist
                     elif 'Checklist Calibración' not in vals['description']:
                         vals['description'] += '<br/>' + checklist
-        return super(HelpdeskTicket, self).create(vals_list)
+        tickets = super(HelpdeskTicket, self).create(vals_list)
+        tickets._schedule_warehouse_activity_for_envio_retiro()
+        return tickets
         
     def write(self, vals):
         res = super(HelpdeskTicket, self).write(vals)
@@ -121,4 +108,36 @@ class HelpdeskTicket(models.Model):
                         record.description = checklist
                     elif 'Checklist Calibración' not in record.description:
                         record.description += '<br/>' + checklist
+            self._schedule_warehouse_activity_for_envio_retiro()
         return res
+
+    def _get_warehouse_responsible_user(self):
+        return self.env['res.users'].search([
+            '|',
+            ('login', 'ilike', 'agustin'),
+            ('name', 'ilike', 'Agust'),
+        ], limit=1)
+
+    def _schedule_warehouse_activity_for_envio_retiro(self):
+        activity_type = self.env.ref('mail.mail_activity_data_todo', raise_if_not_found=False)
+        user = self._get_warehouse_responsible_user()
+        if not activity_type or not user:
+            return
+
+        for ticket in self.filtered(lambda item: item.ticket_type_id.name == 'Envío/Retiro'):
+            existing_activity = self.env['mail.activity'].search([
+                ('res_model', '=', ticket._name),
+                ('res_id', '=', ticket.id),
+                ('activity_type_id', '=', activity_type.id),
+                ('user_id', '=', user.id),
+                ('summary', '=', 'Atender solicitud de Envío/Retiro'),
+            ], limit=1)
+            if existing_activity:
+                continue
+
+            ticket.activity_schedule(
+                'mail.mail_activity_data_todo',
+                user_id=user.id,
+                summary='Atender solicitud de Envío/Retiro',
+                note='Ticket de tipo Envío/Retiro: coordinar la solicitud desde almacén.',
+            )

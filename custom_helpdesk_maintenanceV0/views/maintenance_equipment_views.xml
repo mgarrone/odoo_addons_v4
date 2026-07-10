@@ -10,9 +10,6 @@
             <xpath expr="//field[@name='x_mat_oportunidad']" position="after">
                 <field name="robot_out_of_service" widget="boolean_toggle"/>
             </xpath>
-            <xpath expr="//field[@name='robot_out_of_service']" position="after">
-                <field name="suspended_support" widget="boolean_toggle"/>
-            </xpath>
         </field>
     </record>
 </odoo>

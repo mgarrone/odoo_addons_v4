@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="project.action_view_task" model="ir.actions.act_window">
+        <field name="context">{'group_by': 'stage_id', 'default_group_by': 'stage_id'}</field>
+    </record>
+</odoo>

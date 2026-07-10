@@ -5,4 +5,3 @@ class MaintenanceEquipment(models.Model):
 
     partner_id = fields.Many2one('res.partner', string='Cliente')
     robot_out_of_service = fields.Boolean(string='Robot Fuera de Servicio', default=False)
-    suspended_support = fields.Boolean(string='Soporte Suspendido', default=False)

@@ -152,6 +152,8 @@
                         <field name="x_detalle_de_equipos"
                                nolabel="1"
                                colspan="4"
+                               readonly="1"
+                               options="{'no_create': True, 'no_create_edit': True, 'no_open': True}"
                                mode="tree,form"
                                context="{'default_opportunity_id': id}">
                             <tree>

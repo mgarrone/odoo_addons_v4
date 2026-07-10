@@ -48,25 +48,19 @@ class MaintenanceRequest(models.Model):
         help="Campo informativo del responsable del equipo de mantenimiento"
     )
 
-    # Creamos un campo relacionado que "mira" dentro del equipo seleccionado
-    # equipment_id es el campo nativo de Odoo que relaciona la solicitud con el equipo
-    robot_out_of_service = fields.Boolean(
-        string='Robot Fuera de Servicio', 
-        related='equipment_id.robot_out_of_service', 
-        store=True, 
-        readonly=True
-    )
-
     # --- Smart Button: Contador de Tickets ---
     ticket_count = fields.Integer(
-        compute='_compute_ticket_count',
+        compute='_compute_ticket_count', 
         string='Cantidad de Tickets'
     )
 
-    @api.depends('ticket_ids')
     def _compute_ticket_count(self):
         for record in self:
-            record.ticket_count = len(record.ticket_ids)
+            # Contamos los tickets que apuntan a este mantenimiento
+            # Asegúrate de que en helpdesk.ticket el campo se llame 'maintenance_request_id'
+            record.ticket_count = self.env['helpdesk.ticket'].search_count([
+                ('maintenance_request_id', '=', record.id)
+            ])
 
     def action_view_helpdesk_tickets(self):
         self.ensure_one()
@@ -82,9 +76,7 @@ class MaintenanceRequest(models.Model):
     def action_create_helpdesk_ticket(self):
         for record in self:
             if not record.equipment_id:
-                raise models.ValidationError(
-                    "⚠️ Por favor, seleccione un 'Equipo' antes de crear un ticket de soporte."
-                )
+                raise models.ValidationError("⚠️ Por favor, seleccione un 'Equipo' antes de crear un ticket de soporte.")
             
             vals = {
                 'name': f'Ticket desde Mantenimiento: {record.name}',
@@ -93,13 +85,9 @@ class MaintenanceRequest(models.Model):
                 'partner_id': record.partner_id.id if record.partner_id else False,
                 'maintenance_request_ids': [(4, record.id)],
             }
-            
-            # Asignar cuenta analítica si el equipo la tiene configurada
-            if 'x_mat_cuenta_analitica' in record.equipment_id._fields and record.equipment_id.x_mat_cuenta_analitica:
-                vals['analytic_account_id'] = record.equipment_id.x_mat_cuenta_analitica.id
-                
             ticket = self.env['helpdesk.ticket'].create(vals)
             record.write({'ticket_ids': [(4, ticket.id)]})
+            
             record.message_post(body="🛠️ Se ha creado un ticket de soporte automáticamente.")
 
     # --- Lógica de Vencimiento para Kanban ---
@@ -110,11 +98,7 @@ class MaintenanceRequest(models.Model):
     )
     
     kanban_state = fields.Selection(
-        selection=[
-            ('normal', 'In Progress'),
-            ('done', 'Ready for next stage'),
-            ('blocked', 'Blocked')
-        ],
+        selection=[('normal', 'In Progress'), ('done', 'Ready for next stage'), ('blocked', 'Blocked')],
         string='Kanban State',
         compute='_compute_kanban_state',
         store=True,
@@ -125,9 +109,7 @@ class MaintenanceRequest(models.Model):
     def _compute_is_overdue(self):
         today = fields.Date.today()
         for record in self:
-            if (record.schedule_date 
-                    and record.schedule_date.date() < today 
-                    and not getattr(record, 'archive', False)):
+            if record.schedule_date and record.schedule_date.date() < today and not getattr(record, 'archive', False):
                 record.is_overdue = True
             else:
                 record.is_overdue = False
@@ -138,9 +120,7 @@ class MaintenanceRequest(models.Model):
         for record in self:
             if record.robot_out_of_service:
                 record.kanban_state = 'blocked'
-            elif (record.schedule_date 
-                    and record.schedule_date.date() < today 
-                    and not getattr(record, 'archive', False)):
+            elif record.schedule_date and record.schedule_date.date() < today and not getattr(record, 'archive', False):
                 record.kanban_state = 'done'
             else:
                 record.kanban_state = 'normal'

@@ -55,26 +55,15 @@ Se reescribió `data/helpdesk_data.xml`. Durante la instalación asegura que el 
 ##
 ##Actualizaciones Del Módulo 
 ##
-### Actualización 19/05/2026
+### Actualización 14/05/2026
 
 Se aplicaron nuevas personalizaciones para mantener la compatibilidad con el entorno de Odoo Studio y optimizar la vinculación Helpdesk-Mantenimiento:
-- **Equipos (`maintenance.equipment`)**:
-  -Adición del campo `robot_out_of_service`. (Robot fuera de servicio)
-  -Adición del campo `suspended_support` (Soporte Suspendido) con su respectivo toggle en la vista formulario.
-
+- **Equipos (`maintenance.equipment`)**: Adición del campo `robot_out_of_service`.
 - **Mantenimiento (`maintenance.request`)**: 
   - Cambio en la lógica del estado Kanban (`kanban_state`) computado de forma automática según la prioridad (si el equipo está fuera de servicio o si la fecha límite ya expiró).
   - Integración de `tour_id` y `robot_out_of_service` como campos relacionados directos (`related`) desde el Equipo.
   - Implementación de relación Many2many (`ticket_ids`) para soporte a múltiples tickets por mantenimiento.
-  -Se informa en las solicitudes de mantenimiento si el equipo está fuera de servicio
-
 - **Helpdesk (`helpdesk.ticket`)**:
   - Implementación de relación Many2many (`maintenance_request_ids`) y automatización del campo `tour_id`.
   - **Automatización de Checklist**: Inserción automática de un checklist en formato HTML en el campo descripción cuando el tipo de ticket es "Calibración".
-  -Propagación automática del campo `suspended_support` desde el equipo seleccionado (`related='equipment_id.suspended_support'`).
-  - Implementación de un `web_ribbon` (cinta visual roja de alerta) en el formulario principal del ticket para advertir de forma prominente e inmediata cuando el equipo vinculado tiene su soporte suspendido.
-  -Se informa en los tickets si el equipo asociado está fuera de servicio
-
 - **Interconectividad**: Botones actualizados en ambas vistas para la creación cruzada e intervinculada de registros mediante la nueva estructura Many2many, manteniendo las vistas limpias y ocultando la carga técnica.
-
-

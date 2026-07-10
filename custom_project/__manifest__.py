@@ -1,6 +1,6 @@
 {
     'name': 'Automatiza Proyecto y Lista de Robots',
-    'version': '17.0.2.0.1',
+    'version': '17.0.2.1.0',
     'category': 'Project',
     'summary': 'Relación entre proyectos, oportunidades y robots propuestos',
     'description': """
@@ -20,6 +20,7 @@
         - Sincroniza automáticamente la oportunidad del proyecto con sus escenarios.
         - Expone project_ids en oportunidades como relación inversa de opportunity_id.
         - Valida dimensiones y configuraciones permitidas para productos SMART y VMAX.
+        - Configura 4 etapas predeterminadas para todos los proyectos (nuevos y existentes).
     """,
     'author': 'Automatiza S.A.',
     'website': 'https://www.automatizasa.com',
@@ -27,9 +28,17 @@
     'depends': ['project', 'crm', 'product'],
     'data': [
         'security/ir.model.access.csv',
+        'data/project_stage_data.xml',
+        'data/task_action_context.xml',
         'views/lista_robots_views.xml',
         'views/project_project_views.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'custom_project/static/src/js/project_kanban_open_tasks.js',
+        ],
+    },
+    'post_init_hook': 'post_init_hook',
     'installable': True,
     'application': False,
     'auto_install': False,

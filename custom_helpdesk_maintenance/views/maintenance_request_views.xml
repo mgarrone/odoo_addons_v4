@@ -5,19 +5,16 @@
         <field name="model">maintenance.request</field>
         <field name="inherit_id" ref="maintenance.hr_equipment_request_view_form"/>
         <field name="arch" type="xml">
-            
+
+
             <xpath expr="//header" position="inside">
                 <button name="action_create_helpdesk_ticket" 
                         type="object" 
                         string="Crear Ticket de Soporte" 
-                        class="oe_highlight" />
+                        class="oe_highlight"/>
             </xpath>
 
-            <xpath expr="//sheet" position="before">
-                <field name="ticket_count" invisible="1"/>
-            </xpath>
-
-            <xpath expr="//sheet" position="inside">
+            <xpath expr="//sheet/*[1]" position="before">
                 <div class="oe_button_box" name="button_box">
                     <button name="action_view_helpdesk_tickets" 
                             type="object" 
@@ -26,10 +23,20 @@
                         <field name="ticket_count" widget="statinfo" string="Tickets"/>
                     </button>
                 </div>
+
+                <div class="alert alert-danger text-center mb-2" 
+                     role="alert" 
+                     invisible="not robot_out_of_service" 
+                     style="font-weight: bold; border-radius: 0; margin-top: 5px; border: none;">
+                    <i class="fa fa-exclamation-triangle" style="margin-right: 8px;"/> 
+                    ¡ATENCIÓN! EL ROBOT SE ENCUENTRA FUERA DE SERVICIO
+                </div>
             </xpath>
-            
-            <xpath expr="//sheet" position="inside">
+
+            <xpath expr="//field[@name='company_id']" position="after">
                 <field name="ticket_count" invisible="1"/>
+                <field name="robot_out_of_service" invisible="1"/>
+                <field name="ticket_ids" widget="many2many_tags" invisible="1"/>
             </xpath>
 
             <xpath expr="//field[@name='user_id']" position="attributes">
@@ -37,45 +44,19 @@
             </xpath>
 
             <xpath expr="//field[@name='equipment_id']" position="attributes">
-                <attribute name="domain">[]</attribute>
+                <attribute name="options">{'no_create': True}</attribute>
             </xpath>
 
             <xpath expr="//field[@name='equipment_id']" position="after">
-                <field name="partner_id" />
-                <field name="tour_id" options="{'no_create': True}"/>
+                <field name="partner_id" string="Cliente"/>
+                <field name="tour_id" options="{'no_create': True}" readonly="1" force_save="1"/>
             </xpath>
 
             <xpath expr="//field[@name='maintenance_team_id']" position="after">
-                <field name="equipment_manager_id" />
-                <field name="assigned_employee_id" />
+                <field name="equipment_manager_id"/>
+                <field name="assigned_employee_id"/>
             </xpath>
 
-            <xpath expr="//sheet" position="inside">
-                <field name="ticket_origin_id" readonly="1" invisible="1"/>
-                <field name="ticket_ids" invisible="1"/>
-                <field name="robot_out_of_service" invisible="1"/>
-            </xpath>
-
-        </field>
-    </record>
-
-    <record id="view_maintenance_request_kanban_inherit" model="ir.ui.view">
-        <field name="name">maintenance.request.kanban.inherit.merged</field>
-        <field name="model">maintenance.request</field>
-        <field name="inherit_id" ref="maintenance.hr_equipment_request_view_kanban"/>
-        <field name="arch" type="xml">
-            <xpath expr="//kanban" position="inside">
-                <field name="is_overdue"/>
-                <field name="schedule_date"/>
-            </xpath>
-
-            <xpath expr="//t[@t-name='kanban-box']/div" position="attributes">
-                <attribute name="t-attf-class">
-                    {{!selection_mode ? 'oe_kanban_color_' + kanban_getcolor(record.color.raw_value) : ''}} 
-                    oe_kanban_card oe_kanban_global_click oe_semantic_html_override
-                    #{record.is_overdue.raw_value ? 'bg-danger text-white' : ''}
-                </attribute>
-            </xpath>
         </field>
     </record>
 </odoo>

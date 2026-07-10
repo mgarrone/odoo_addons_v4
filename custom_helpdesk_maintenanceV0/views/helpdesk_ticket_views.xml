@@ -24,21 +24,6 @@
                 </button>
             </xpath>
 
-            <xpath expr="//sheet/group" position="before">
-                <field name="suspended_support" invisible="1"/>
-                <field name="robot_out_of_service" invisible="1"/>
-
-                <div class="alert alert-danger text-center mb-2" 
-                     role="alert" 
-                     invisible="not robot_out_of_service" 
-                     style="font-weight: bold; border-radius: 0; margin-top: 5px; border: none;">
-                    <i class="fa fa-exclamation-triangle" style="margin-right: 8px;"/> 
-                    ¡ATENCIÓN! EL ROBOT SE ENCUENTRA FUERA DE SERVICIO
-                </div>
-
-                <widget name="web_ribbon" title="Soporte Suspendido" bg_color="text-bg-danger" invisible="not suspended_support"/>
-            </xpath>
-
             <xpath expr="//sheet/group" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
@@ -64,28 +49,20 @@
                         <field name="partner_phone"/>
                         <field name="partner_email"/>
                         <field name="employee_follower_ids" widget="many2many_tags"/>
+                        <field name="x_resuelto_ia"/>
                         <field name="parent_ticket_id"/>
-                        <field name="evidence_ids" widget="many2many_binary"/>                        
+                        <field name="evidence_ids" widget="many2many_binary"/>
+                        
                         <field name="maintenance_request_id" invisible="1"/>
                         <field name="maintenance_request_ids" invisible="1"/>
                         <field name="maintenance_count" invisible="1"/>
                     </group>
                 </group>
                 
-               
                 <div class="mt-3">
                     <label for="progress" string="Progreso" class="oe_inline fw-bold me-3"/>
                     <field name="progress" widget="statusbar" options="{'clickable': '1'}" class="oe_inline"/>
-                    
-                    <div class="d-block mt-2">
-                        <label for="x_resuelto_ia" class="fw-bold me-2" style="min-width: 150px; display: inline-block;"/>
-                        <field name="x_resuelto_ia" class="oe_inline"/>
-                    </div>
                 </div>
-
-
-                <field name="message_ids" widget="mail_thread"/>
-
             </xpath>
 
         </field>

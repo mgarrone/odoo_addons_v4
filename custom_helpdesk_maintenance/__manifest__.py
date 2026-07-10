@@ -1,20 +1,19 @@
 {
     'name': 'Automatiza Personalización Helpdesk y Mantenimiento',
-    'version': '17.0.1.0.0',
+    'version': '17.0.1.0.1',
     'category': 'Services/Helpdesk',
-    'summary': ' Automatiza - Personaliza Solicitudes de mantenimiento y las relaciona con giras',
+    'summary': ' Automatiza - Personaliza Solicitudes de mantenimiento y Tickets y las relaciona con giras',
      'description': """
-        Personalizaciones de Helpdesk y Mantenimiento para Automatiza.
-
-        Cambios principales:
-        - Relaciona tickets de helpdesk con equipos, giras y cuentas analíticas.
-        - Permite crear solicitudes de mantenimiento desde tickets.
-        - Relaciona tickets y solicitudes de mantenimiento en forma Many2many.
-        - Agrega progreso, seguidores empleados, ticket padre y evidencias.
-        - Mantiene checklist automático para tickets de tipo Calibración.
-        - Agrega el campo x_resuelto_ia para indicar tickets resueltos exclusivamente con IA.
-        - Crea una actividad automática para el responsable de almacén cuando el ticket
-          es de tipo Envío/Retiro.
+<h3>Módulo de Personalización Helpdesk y Mantenimiento</h3>
+<p>Este módulo integra de manera nativa y automatizada los flujos entre la mesa de ayuda (Helpdesk) y el Mantenimiento ademas relaciona con giras.</p>
+<h4>Características y Últimos Cambios (Mayo 2026):</h4>
+<ul>
+    <li><b>Helpdesk y Mantenimiento:</b> Relación de muchos-a-muchos entre tickets y solicitudes de mantenimiento, con botones inteligentes (Smart Buttons) para rápida navegación.</li>
+    <li><b>Alertas Visuales:</b> Implementación de carteles de advertencia (Banners) y cintas (Ribbons) en los formularios para notificar instantáneamente si el <i>Robot se encuentra fuera de servicio</i> o si el <i>Soporte está suspendido</i>.</li>
+    <li><b>Automatización de Estados Kanban:</b> Nueva acción planificada (Cron Job) que revisa a diario y cambia automáticamente el estado de los mantenimientos a 'Bloqueado' (si el robot falla) o 'Hecho' (si la fecha programada expiró).</li>
+    <li><b>Checklist Automático:</b> Inserción automática de pasos de calibración en la descripción del ticket de Helpdesk.</li>
+    <li><b>Interfaz Optimizada:</b> Limpieza y organización de las vistas de los formularios para mostrar de manera clara los clientes, la gira asociada y el progreso.</li>
+</ul>
     """,
     'depends': ['helpdesk', 'maintenance', 'hr_maintenance', 'analytic', 'helpdesk_timesheet', 'custom_maintenance'],
     'author': 'Automatiza S.A.',
