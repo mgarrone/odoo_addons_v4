@@ -80,6 +80,7 @@ class ProjectProject(models.Model):
 
     @api.depends('name')
     def _compute_task_count(self):
+        super()._compute_task_count()
         Task = self.env['project.task']
         grouped = Task.read_group(
             [('project_id', 'in', self.ids)],

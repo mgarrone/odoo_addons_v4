@@ -12,7 +12,7 @@ async function openProjectTasks(env, resId) {
     await env.services.action.doAction(action);
 }
 
-patch(KanbanRecord.prototype, "custom_project.open_project_tasks_from_kanban_record", {
+patch(KanbanRecord.prototype, {
     async onClick(ev) {
         const record = this.props.record;
         const model = this.props.record?.model?.root?.resModel || this.props.record?.modelName;
@@ -22,6 +22,6 @@ patch(KanbanRecord.prototype, "custom_project.open_project_tasks_from_kanban_rec
             await openProjectTasks(this.env, record.resId);
             return;
         }
-        return this._super(ev);
+        return super.onClick(ev);
     },
 });
