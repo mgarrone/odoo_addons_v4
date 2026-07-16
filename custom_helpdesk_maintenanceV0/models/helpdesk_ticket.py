@@ -112,10 +112,28 @@ class HelpdeskTicket(models.Model):
         return res
 
     def _get_warehouse_responsible_user(self):
+        job = self.env.ref('custom_helpdesk_maintenanceV0.job_responsable_inventario', raise_if_not_found=False)
+        employee = False
+
+        if job and job._name == 'hr.job':
+            employee = self.env['hr.employee'].search([
+                ('job_id', '=', job.id),
+                ('active', '=', True),
+                ('user_id', '!=', False),
+            ], limit=1)
+
+        if not employee:
+            employee = self.env['hr.employee'].search([
+                ('job_id.name', 'ilike', 'Responsable de inventario'),
+                ('active', '=', True),
+                ('user_id', '!=', False),
+            ], limit=1)
+
+        if employee and employee.user_id:
+            return employee.user_id
+
         return self.env['res.users'].search([
-            '|',
             ('login', 'ilike', 'agustin'),
-            ('name', 'ilike', 'Agust'),
         ], limit=1)
 
     def _schedule_warehouse_activity_for_envio_retiro(self):

@@ -16,6 +16,12 @@ class ListaRobotsTag(models.Model):
     ]
 
 
+# XML IDs de registros externos
+VMAX_TMPL_XMLID = '_product.template._VMAX_extID'
+SMART_TMPL_XMLID = '_product.template._Smart_extID'
+ROBOTS_CATEG_XMLID = '_product.category._robots_extID'
+
+
 class ListaRobots(models.Model):
     _name = 'x_lista_de_robots'
     _description = 'Escenario de producto'
@@ -45,7 +51,19 @@ class ListaRobots(models.Model):
         ondelete='set null',
         readonly=True
     )
-    product_id = fields.Many2one('product.product', string='Producto')
+    product_id = fields.Many2one(
+        'product.product',
+        string='Producto',
+        domain=lambda self: [
+            ('categ_id', 'child_of',
+             self.env.ref(ROBOTS_CATEG_XMLID, raise_if_not_found=False).id)
+        ] if self.env.ref(ROBOTS_CATEG_XMLID, raise_if_not_found=False) else [('id', '=', False)],
+    )
+    is_vmax = fields.Boolean(
+        string='Es VMAX',
+        compute='_compute_is_vmax',
+        store=True,
+    )
     scenario = fields.Integer(string='Escenario')
     ffq_url = fields.Char(string='FFQ')
     height = fields.Float(string='Alto', digits=(16, 2))
@@ -87,6 +105,16 @@ class ListaRobots(models.Model):
             self._sync_opportunity_from_project()
         return res
 
+    @api.depends('product_id.product_tmpl_id')
+    def _compute_is_vmax(self):
+        vmax_tmpl = self.env.ref(VMAX_TMPL_XMLID, raise_if_not_found=False)
+        for robot in self:
+            robot.is_vmax = (
+                bool(vmax_tmpl)
+                and bool(robot.product_id)
+                and robot.product_id.product_tmpl_id == vmax_tmpl
+            )
+
     @api.onchange('project_id')
     def _onchange_project_id(self):
         self._sync_opportunity_from_project()
@@ -122,11 +150,19 @@ class ListaRobots(models.Model):
 
     def _is_smart(self):
         self.ensure_one()
-        return self.product_id.display_name == 'Robot BD ROWA SMART'
+        smart_tmpl = self.env.ref(SMART_TMPL_XMLID, raise_if_not_found=False)
+        return (
+            bool(smart_tmpl)
+            and self.product_id.product_tmpl_id == smart_tmpl
+        )
 
     def _is_vmax(self):
         self.ensure_one()
-        return self.product_id.display_name == 'Robot BD ROWA VMAX'
+        vmax_tmpl = self.env.ref(VMAX_TMPL_XMLID, raise_if_not_found=False)
+        return (
+            bool(vmax_tmpl)
+            and self.product_id.product_tmpl_id == vmax_tmpl
+        )
 
     def _validate_length_multiple(self, length, rule_name):
         if round((length or 0.0) % 0.5, 2) != 0:

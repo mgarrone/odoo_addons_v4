@@ -109,7 +109,9 @@ class HelpdeskTicket(models.Model):
                         vals['description'] = checklist
                     elif 'Checklist Calibración' not in vals['description']:
                         vals['description'] += '<br/>' + checklist
-        return super(HelpdeskTicket, self).create(vals_list)
+        tickets = super(HelpdeskTicket, self).create(vals_list)
+        tickets._schedule_warehouse_activity_for_envio_retiro()
+        return tickets
         
     def write(self, vals):
         res = super(HelpdeskTicket, self).write(vals)
@@ -121,4 +123,54 @@ class HelpdeskTicket(models.Model):
                         record.description = checklist
                     elif 'Checklist Calibración' not in record.description:
                         record.description += '<br/>' + checklist
+            self._schedule_warehouse_activity_for_envio_retiro()
         return res
+
+    def _get_warehouse_responsible_user(self):
+        job = self.env.ref('custom_helpdesk_maintenance.job_responsable_inventario', raise_if_not_found=False)
+        employee = False
+
+        if job and job._name == 'hr.job':
+            employee = self.env['hr.employee'].search([
+                ('job_id', '=', job.id),
+                ('active', '=', True),
+                ('user_id', '!=', False),
+            ], limit=1)
+
+        if not employee:
+            employee = self.env['hr.employee'].search([
+                ('job_id.name', 'ilike', 'Responsable de inventario'),
+                ('active', '=', True),
+                ('user_id', '!=', False),
+            ], limit=1)
+
+        if employee and employee.user_id:
+            return employee.user_id
+
+        return self.env['res.users'].search([
+            ('login', 'ilike', 'agustin'),
+        ], limit=1)
+
+    def _schedule_warehouse_activity_for_envio_retiro(self):
+        activity_type = self.env.ref('mail.mail_activity_data_todo', raise_if_not_found=False)
+        user = self._get_warehouse_responsible_user()
+        if not activity_type or not user:
+            return
+
+        for ticket in self.filtered(lambda item: item.ticket_type_id.name == 'Envío/Retiro'):
+            existing_activity = self.env['mail.activity'].search([
+                ('res_model', '=', ticket._name),
+                ('res_id', '=', ticket.id),
+                ('activity_type_id', '=', activity_type.id),
+                ('user_id', '=', user.id),
+                ('summary', '=', 'Atender solicitud de Envío/Retiro'),
+            ], limit=1)
+            if existing_activity:
+                continue
+
+            ticket.activity_schedule(
+                'mail.mail_activity_data_todo',
+                user_id=user.id,
+                summary='Atender solicitud de Envío/Retiro',
+                note='Ticket de tipo Envío/Retiro: coordinar la solicitud desde almacén.',
+            )

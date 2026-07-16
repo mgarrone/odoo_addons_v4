@@ -42,12 +42,21 @@
                             <field name="ffq_url" widget="url" placeholder="URL de FFQ"/>
                         </group>
                         <group>
+                            <field name="is_vmax" invisible="1"/>
                             <field name="min_capacity"/>
                             <field name="max_capacity"/>
                             <field name="conveyor_belt" string="Cinta de transporte (m)"/>
                             <field name="deflectors"/>
                             <field name="easy_load"/>
+                            <field name="easy_load_buffer" string="Buffer Easy load (m)"
+                                   attrs="{'invisible': [('easy_load', '=', False)]}"/>
                             <field name="spirals"/>
+                            <field name="second_picking_arm"
+                                   attrs="{'invisible': [('is_vmax', '=', False)]}"/>
+                            <field name="second_input_belt"
+                                   attrs="{'invisible': [('is_vmax', '=', False)]}"/>
+                            <field name="refrigeration_module"
+                                   attrs="{'invisible': [('is_vmax', '=', False)]}"/>
                             <field name="cleaning_module"/>
                             <field name="side_glasses"/>
                             <field name="back_glass"/>
