@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
@@ -16,10 +16,11 @@ class ListaRobotsTag(models.Model):
     ]
 
 
-# XML IDs de registros externos
-VMAX_TMPL_XMLID = '_product.template._VMAX_extID'
-SMART_TMPL_XMLID = '_product.template._Smart_extID'
-ROBOTS_CATEG_XMLID = '_product.category._robots_extID'
+# Se mantiene la lógica basada en IDs externos para distinguir SMART/VMAX.
+# Si no existen, se hace fallback por nombre para no bloquear la carga del formulario.
+VMAX_EXT = {'module': '_product.template_', 'name': 'VMAX_extID'}
+SMART_EXT = {'module': '_product.template_', 'name': 'Smart_extID'}
+ROBOTS_CATEG_EXT = {'module': '_product.category_', 'name': 'robots_extID'}
 
 
 class ListaRobots(models.Model):
@@ -27,6 +28,66 @@ class ListaRobots(models.Model):
     _description = 'Escenario de producto'
     _rec_name = 'name'
     _order = 'project_id, scenario, name'
+
+    @api.model
+    def _safe_get_external_record_id(self, module, name, model=None):
+        """Resuelve un XML ID de forma segura (env.ref + ir.model.data)."""
+        xmlid = '%s.%s' % (module, name)
+        record = self.env.ref(xmlid, raise_if_not_found=False)
+        if record and (not model or record._name == model):
+            return record.id
+
+        domain = [
+            ('module', '=', module),
+            ('name', '=', name),
+        ]
+        if model:
+            domain.append(('model', '=', model))
+        ext_id = self.env['ir.model.data'].sudo().search(domain, limit=1)
+        return ext_id.res_id if ext_id else False
+
+    @api.model
+    def _get_robots_category(self):
+        """
+        Devuelve la categoría Robots definida en ROBOTS_CATEG_EXT.
+        Si el XML ID no existe o el registro fue borrado, retorna vacío.
+        """
+        robots_category_id = self._safe_get_external_record_id(
+            ROBOTS_CATEG_EXT['module'],
+            ROBOTS_CATEG_EXT['name'],
+            model='product.category',
+        )
+        if not robots_category_id:
+            return self.env['product.category']
+        category = self.env['product.category'].browse(robots_category_id)
+        return category if category.exists() else self.env['product.category']
+
+    @api.model
+    def _get_robots_product_domain(self):
+        """
+        Dominio del campo Producto:
+        - Si existe la categoría de ROBOTS_CATEG_EXT → solo productos de esa categoría.
+        - Si no existe → todos los productos activos.
+        """
+        robots_category = self._get_robots_category()
+        if not robots_category:
+            return [('active', '=', True)]
+        return [
+            ('active', '=', True),
+            ('categ_id', 'child_of', robots_category.id),
+        ]
+
+    @api.model
+    def _get_robots_project_domain(self):
+        return [('active', '=', True)]
+
+    @api.model
+    def fields_get(self, allfields=None, attributes=None):
+        """Inyecta el dominio con el ID real de categoría para el cliente web."""
+        res = super().fields_get(allfields=allfields, attributes=attributes)
+        if 'product_id' in res:
+            res['product_id']['domain'] = self._get_robots_product_domain()
+        return res
 
     name = fields.Char(
         string='Nombre',
@@ -43,7 +104,8 @@ class ListaRobots(models.Model):
     project_id = fields.Many2one(
         'project.project',
         string='Proyecto',
-        ondelete='cascade'
+        ondelete='cascade',
+        domain='[(\'active\', \'=\', True)]',
     )
     opportunity_id = fields.Many2one(
         'crm.lead',
@@ -54,11 +116,10 @@ class ListaRobots(models.Model):
     product_id = fields.Many2one(
         'product.product',
         string='Producto',
-        domain=lambda self: [
-            ('categ_id', 'child_of',
-             self.env.ref(ROBOTS_CATEG_XMLID, raise_if_not_found=False).id)
-        ] if self.env.ref(ROBOTS_CATEG_XMLID, raise_if_not_found=False) else [('id', '=', False)],
+        domain=lambda self: self._get_robots_product_domain(),
+        context={'restrict_to_robots_category': True},
     )
+
     is_vmax = fields.Boolean(
         string='Es VMAX',
         compute='_compute_is_vmax',
@@ -103,21 +164,33 @@ class ListaRobots(models.Model):
         res = super().write(vals)
         if 'project_id' in vals:
             self._sync_opportunity_from_project()
+        if 'product_id' in vals:
+            self._sync_product_type_fields()
         return res
 
     @api.depends('product_id.product_tmpl_id')
     def _compute_is_vmax(self):
-        vmax_tmpl = self.env.ref(VMAX_TMPL_XMLID, raise_if_not_found=False)
         for robot in self:
-            robot.is_vmax = (
-                bool(vmax_tmpl)
-                and bool(robot.product_id)
-                and robot.product_id.product_tmpl_id == vmax_tmpl
-            )
+            robot.is_vmax = robot._is_vmax()
 
     @api.onchange('project_id')
     def _onchange_project_id(self):
         self._sync_opportunity_from_project()
+        return {
+            'domain': {
+                'project_id': self._get_robots_project_domain(),
+                'product_id': self._get_robots_product_domain(),
+            }
+        }
+
+    @api.onchange('product_id')
+    def _onchange_product_id(self):
+        self._sync_product_type_fields()
+        return {
+            'domain': {
+                'product_id': self._get_robots_product_domain(),
+            }
+        }
 
     @api.onchange('product_id', 'width')
     def _onchange_robot_width(self):
@@ -125,10 +198,33 @@ class ListaRobots(models.Model):
             if robot._is_smart() or robot._is_vmax():
                 robot.width = 1.63
 
+    def _sync_product_type_fields(self):
+        for robot in self:
+            if not robot.product_id:
+                continue
+            if not robot._is_vmax():
+                robot.second_picking_arm = False
+                robot.second_input_belt = False
+                robot.refrigeration_module = False
+
     def _sync_opportunity_from_project(self):
         for robot in self:
             if robot.project_id:
                 robot.opportunity_id = robot.project_id.opportunity_id
+
+    @api.constrains('product_id')
+    def _check_product_robots_category(self):
+        robots_category = self._get_robots_category()
+        if not robots_category:
+            return
+        allowed_products = self.env['product.product'].search(
+            self._get_robots_product_domain()
+        )
+        for robot in self:
+            if robot.product_id and robot.product_id not in allowed_products:
+                raise ValidationError(
+                    'El producto seleccionado debe pertenecer a la categoría Robots.'
+                )
 
     @api.constrains(
         'product_id',
@@ -148,21 +244,29 @@ class ListaRobots(models.Model):
             elif robot._is_vmax():
                 robot._validate_vmax()
 
-    def _is_smart(self):
+    def _is_product_type(self, product_type):
         self.ensure_one()
-        smart_tmpl = self.env.ref(SMART_TMPL_XMLID, raise_if_not_found=False)
-        return (
-            bool(smart_tmpl)
-            and self.product_id.product_tmpl_id == smart_tmpl
+        if not self.product_id or not self.product_id.product_tmpl_id:
+            return False
+
+        ext_conf = VMAX_EXT if product_type == 'VMAX' else SMART_EXT
+        external_template_id = self._safe_get_external_record_id(
+            ext_conf['module'],
+            ext_conf['name'],
         )
+        if not external_template_id:
+            template_name = (self.product_id.product_tmpl_id.name or '').strip().lower()
+            if product_type == 'VMAX':
+                return 'vmax' in template_name
+            return 'smart' in template_name
+
+        return self.product_id.product_tmpl_id.id == external_template_id
 
     def _is_vmax(self):
-        self.ensure_one()
-        vmax_tmpl = self.env.ref(VMAX_TMPL_XMLID, raise_if_not_found=False)
-        return (
-            bool(vmax_tmpl)
-            and self.product_id.product_tmpl_id == vmax_tmpl
-        )
+        return self._is_product_type('VMAX')
+
+    def _is_smart(self):
+        return self._is_product_type('SMART')
 
     def _validate_length_multiple(self, length, rule_name):
         if round((length or 0.0) % 0.5, 2) != 0:
@@ -232,3 +336,22 @@ class ListaRobots(models.Model):
 
         self._validate_length_multiple(length, 'VMAX')
         self._validate_easy_load_buffer([1, 1.5, 2, 2.5, 3, 4, 5, 6, 7, 8], 'VMAX')
+
+
+class ProductProduct(models.Model):
+    _inherit = 'product.product'
+
+    @api.model
+    def name_search(self, name='', args=None, operator='ilike', limit=100):
+        """
+        Aplica el filtro de categoría Robots solo cuando el many2one de
+        x_lista_de_robots lo solicita vía contexto.
+        Si la categoría no existe, no agrega filtro extra (muestra todos).
+        """
+        args = list(args or [])
+        if self.env.context.get('restrict_to_robots_category'):
+            robots_domain = self.env['x_lista_de_robots']._get_robots_product_domain()
+            for leaf in robots_domain:
+                if leaf not in args:
+                    args.append(leaf)
+        return super().name_search(name, args=args, operator=operator, limit=limit)

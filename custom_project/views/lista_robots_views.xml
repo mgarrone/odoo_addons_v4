@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="view_x_lista_de_robots_tree" model="ir.ui.view">
         <field name="name">x.lista.de.robots.tree</field>
@@ -9,7 +9,7 @@
                 <field name="opportunity_id"/>
                 <field name="scenario"/>
                 <field name="name"/>
-                <field name="product_id"/>
+                <field name="product_id" context="{'restrict_to_robots_category': True}"/>
                 <field name="max_capacity"/>
                 <field name="height"/>
                 <field name="length"/>
@@ -24,6 +24,9 @@
         <field name="arch" type="xml">
             <form string="Escenario de producto">
                 <sheet>
+                    <!-- Campo invisible requerido para la reactividad de la vista y scripts de Python -->
+                    <field name="is_vmax" invisible="1"/>
+
                     <div class="oe_title">
                         <h1>
                             <field name="name" placeholder="Ej: Rowa 1 - Farmacia X"/>
@@ -33,7 +36,7 @@
                     <group>
                         <group>
                             <field name="project_id"/>
-                            <field name="product_id"/>
+                            <field name="product_id" context="{'restrict_to_robots_category': True}"/>
                             <field name="height" string="Alto (m)"/>
                             <field name="length" string="Largo (m)"/>
                             <field name="width" string="Ancho (m)"/>
@@ -42,33 +45,32 @@
                             <field name="ffq_url" widget="url" placeholder="URL de FFQ"/>
                         </group>
                         <group>
-                            <field name="is_vmax" invisible="1"/>
                             <field name="min_capacity"/>
                             <field name="max_capacity"/>
                             <field name="conveyor_belt" string="Cinta de transporte (m)"/>
                             <field name="deflectors"/>
                             <field name="easy_load"/>
                             <field name="easy_load_buffer" string="Buffer Easy load (m)"
-                                   attrs="{'invisible': [('easy_load', '=', False)]}"/>
+                                   invisible="not easy_load"/>
                             <field name="spirals"/>
-                            <field name="second_picking_arm"
-                                   attrs="{'invisible': [('is_vmax', '=', False)]}"/>
-                            <field name="second_input_belt"
-                                   attrs="{'invisible': [('is_vmax', '=', False)]}"/>
-                            <field name="refrigeration_module"
-                                   attrs="{'invisible': [('is_vmax', '=', False)]}"/>
+
+                            <!-- Campos exclusivos de VMAX (Ocultos dinámicamente si no lo es) -->
+                            <field name="second_picking_arm" invisible="not is_vmax"/>
+                            <field name="second_input_belt" invisible="not is_vmax"/>
+                            <field name="refrigeration_module" invisible="not is_vmax"/>
+
                             <field name="cleaning_module"/>
                             <field name="side_glasses"/>
                             <field name="back_glass"/>
                             <field name="floor_glass"/>
                             <field name="location"/>
                             <field name="other_complement"/>
-                            <field name="comments"/>
                         </group>
                     </group>
                     <notebook>
-                        <page string="Details">
-                            <field name="comments" string="Descripción"/>
+                        <page string="Detalles / Comentarios">
+                            <!-- Dejado exclusivamente aquí para disponer de un editor cómodo y limpio -->
+                            <field name="comments" placeholder="Escriba aquí los detalles o comentarios del escenario..."/>
                         </page>
                     </notebook>
                 </sheet>
@@ -84,7 +86,7 @@
                 <field name="name"/>
                 <field name="project_id"/>
                 <field name="opportunity_id"/>
-                <field name="product_id"/>
+                <field name="product_id" context="{'restrict_to_robots_category': True}"/>
                 <group expand="0" string="Agrupar por">
                     <filter string="Proyecto" name="group_project" context="{'group_by': 'project_id'}"/>
                     <filter string="Oportunidad" name="group_opportunity" context="{'group_by': 'opportunity_id'}"/>
@@ -107,3 +109,5 @@
               action="action_x_lista_de_robots"
               sequence="80"/>
 </odoo>
+
+
