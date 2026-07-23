@@ -37,10 +37,12 @@ STOCK_MANAGER_JOB_EXT = {'module': '_hr.job_', 'name': 'stockManager_extID'}
 
 ### Capas de control
 
-1. `_get_warehouse_responsible_user()` — solo XML ID, **sin** fallbacks (ni por nombre ni por login `agustin`).
-2. `activity_schedule` — intercepta la programación de esa actividad.
-3. `mail.activity.create` — bloquea o corrige creaciones desde otras fuentes (p. ej. módulos legacy).
+1. `_get_warehouse_responsible_user()` — solo XML ID, **sin** fallbacks (ni por nombre ni por login).
+2. `activity_schedule` — intercepta **solo** el summary `Atender solicitud de Envío/Retiro`.
+3. `mail.activity.create` — interviene **solo** esa misma actividad en `helpdesk.ticket`; el resto de actividades del sistema no se tocan.
 4. `_register_hook` — asegura prioridad de esta lógica sobre herencias concurrentes.
+
+**Importante:** el módulo **no crea** el puesto `hr.job`. Usa el existente `_hr.job_.stockManager_extID`.
 
 ### Requisitos para que se asigne bien
 

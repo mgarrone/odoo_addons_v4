@@ -198,17 +198,14 @@ class HelpdeskTicket(models.Model):
 
     def activity_schedule(self, act_type_xmlid='', date_deadline=None, summary='', note='', **act_values):
         """
-        Intercepta la programación de la actividad Envío/Retiro.
-        Sin responsable (XML ID): no crea nada.
-        Con responsable: fuerza la asignación a ese usuario.
+        Intercepta SOLO la actividad automática
+        'Atender solicitud de Envío/Retiro'. El resto usa el comportamiento estándar.
         """
-        summary_norm = (summary or '')
-        try:
-            from odoo.addons.custom_helpdesk_maintenance.models.mail_activity import _strip_accents
-            is_envio = 'atender solicitud de envio/retiro' in _strip_accents(summary_norm)
-        except Exception:
-            is_envio = 'Envío/Retiro' in (summary or '') or 'Envio/Retiro' in (summary or '')
-        if is_envio:
+        from odoo.addons.custom_helpdesk_maintenance.models.mail_activity import (
+            ENVIO_RETIRO_SUMMARY_NORM,
+            _strip_accents,
+        )
+        if _strip_accents(summary or '') == ENVIO_RETIRO_SUMMARY_NORM:
             user = self._get_warehouse_responsible_user()
             if not user:
                 return self.env['mail.activity']
@@ -222,7 +219,7 @@ class HelpdeskTicket(models.Model):
         )
 
     def _get_envio_retiro_activities(self):
-        """Actividades automáticas de Envío/Retiro sobre estos tickets."""
+        """Solo actividades automáticas Envío/Retiro sobre estos tickets."""
         self.ensure_one()
         activity_type = self.env.ref('mail.mail_activity_data_todo', raise_if_not_found=False)
         if not activity_type:
@@ -231,7 +228,7 @@ class HelpdeskTicket(models.Model):
             ('res_model', '=', self._name),
             ('res_id', '=', self.id),
             ('activity_type_id', '=', activity_type.id),
-            ('summary', 'ilike', 'Atender solicitud de Env%/Retiro'),
+            ('summary', '=', 'Atender solicitud de Envío/Retiro'),
         ])
 
     def _automatiza_sync_envio_retiro_activity(self):
