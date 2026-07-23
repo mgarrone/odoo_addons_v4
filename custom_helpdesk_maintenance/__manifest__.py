@@ -1,6 +1,6 @@
 {
     'name': 'Automatiza Personalización Helpdesk y Mantenimiento',
-    'version': '17.0.1.0.5',
+    'version': '17.0.1.0.7',
     'category': 'Services/Helpdesk',
     'summary': ' Automatiza - Personaliza Solicitudes de mantenimiento y Tickets y las relaciona con giras',
      'description': """

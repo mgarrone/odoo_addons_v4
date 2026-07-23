@@ -106,8 +106,7 @@ class HelpdeskTicket(models.Model):
     def _register_hook(self):
         """
         Fuerza prioridad sobre custom_helpdesk_maintenanceV0 (u otras herencias):
-        reescribe en el registro los métodos de actividad Envío/Retiro y envuelve
-        create/write para que la sincronización correcta corra al final.
+        reescribe en el registro los métodos de actividad Envío/Retiro.
         """
         super()._register_hook()
         Model = self.env.registry[self._name]
@@ -117,32 +116,10 @@ class HelpdeskTicket(models.Model):
         Model._get_warehouse_responsible_user = HelpdeskTicket._get_warehouse_responsible_user
         Model._get_envio_retiro_activities = HelpdeskTicket._get_envio_retiro_activities
         Model._automatiza_sync_envio_retiro_activity = HelpdeskTicket._automatiza_sync_envio_retiro_activity
-        # Neutraliza el método de V0 (fallback a login 'agustin')
         Model._schedule_warehouse_activity_for_envio_retiro = (
             HelpdeskTicket._automatiza_sync_envio_retiro_activity
         )
-
-        if getattr(Model, '_automatiza_envio_retiro_priority_wrapped', False):
-            return
-
-        original_create = Model.create
-        original_write = Model.write
-
-        @api.model_create_multi
-        def create(self, vals_list, __original_create=original_create):
-            tickets = __original_create(self, vals_list)
-            tickets._automatiza_sync_envio_retiro_activity()
-            return tickets
-
-        def write(self, vals, __original_write=original_write):
-            res = __original_write(self, vals)
-            if 'ticket_type_id' in vals:
-                self._automatiza_sync_envio_retiro_activity()
-            return res
-
-        Model.create = create
-        Model.write = write
-        Model._automatiza_envio_retiro_priority_wrapped = True
+        Model.activity_schedule = HelpdeskTicket.activity_schedule
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -219,6 +196,31 @@ class HelpdeskTicket(models.Model):
             return self.env['res.users']
         return employee.user_id
 
+    def activity_schedule(self, act_type_xmlid='', date_deadline=None, summary='', note='', **act_values):
+        """
+        Intercepta la programación de la actividad Envío/Retiro.
+        Sin responsable (XML ID): no crea nada.
+        Con responsable: fuerza la asignación a ese usuario.
+        """
+        summary_norm = (summary or '')
+        try:
+            from odoo.addons.custom_helpdesk_maintenance.models.mail_activity import _strip_accents
+            is_envio = 'atender solicitud de envio/retiro' in _strip_accents(summary_norm)
+        except Exception:
+            is_envio = 'Envío/Retiro' in (summary or '') or 'Envio/Retiro' in (summary or '')
+        if is_envio:
+            user = self._get_warehouse_responsible_user()
+            if not user:
+                return self.env['mail.activity']
+            act_values = dict(act_values, user_id=user.id)
+        return super().activity_schedule(
+            act_type_xmlid=act_type_xmlid,
+            date_deadline=date_deadline,
+            summary=summary,
+            note=note,
+            **act_values,
+        )
+
     def _get_envio_retiro_activities(self):
         """Actividades automáticas de Envío/Retiro sobre estos tickets."""
         self.ensure_one()
@@ -229,7 +231,7 @@ class HelpdeskTicket(models.Model):
             ('res_model', '=', self._name),
             ('res_id', '=', self.id),
             ('activity_type_id', '=', activity_type.id),
-            ('summary', '=', 'Atender solicitud de Envío/Retiro'),
+            ('summary', 'ilike', 'Atender solicitud de Env%/Retiro'),
         ])
 
     def _automatiza_sync_envio_retiro_activity(self):
