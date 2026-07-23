@@ -1,6 +1,10 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 
+# Constantes para el puesto de Responsable de inventario
+STOCK_MANAGER_JOB_EXT = {'module': '_hr.job_', 'name': 'stockManager_extID'}
+
+
 class HelpdeskTicket(models.Model):
     _inherit = 'helpdesk.ticket'
 
@@ -98,6 +102,48 @@ class HelpdeskTicket(models.Model):
             'context': {'default_ticket_ids': [(4, self.id)]},
         }
 
+    @api.model
+    def _register_hook(self):
+        """
+        Fuerza prioridad sobre custom_helpdesk_maintenanceV0 (u otras herencias):
+        reescribe en el registro los métodos de actividad Envío/Retiro y envuelve
+        create/write para que la sincronización correcta corra al final.
+        """
+        super()._register_hook()
+        Model = self.env.registry[self._name]
+
+        Model._safe_get_external_record_id = HelpdeskTicket._safe_get_external_record_id
+        Model._get_stock_manager_job = HelpdeskTicket._get_stock_manager_job
+        Model._get_warehouse_responsible_user = HelpdeskTicket._get_warehouse_responsible_user
+        Model._get_envio_retiro_activities = HelpdeskTicket._get_envio_retiro_activities
+        Model._automatiza_sync_envio_retiro_activity = HelpdeskTicket._automatiza_sync_envio_retiro_activity
+        # Neutraliza el método de V0 (fallback a login 'agustin')
+        Model._schedule_warehouse_activity_for_envio_retiro = (
+            HelpdeskTicket._automatiza_sync_envio_retiro_activity
+        )
+
+        if getattr(Model, '_automatiza_envio_retiro_priority_wrapped', False):
+            return
+
+        original_create = Model.create
+        original_write = Model.write
+
+        @api.model_create_multi
+        def create(self, vals_list, __original_create=original_create):
+            tickets = __original_create(self, vals_list)
+            tickets._automatiza_sync_envio_retiro_activity()
+            return tickets
+
+        def write(self, vals, __original_write=original_write):
+            res = __original_write(self, vals)
+            if 'ticket_type_id' in vals:
+                self._automatiza_sync_envio_retiro_activity()
+            return res
+
+        Model.create = create
+        Model.write = write
+        Model._automatiza_envio_retiro_priority_wrapped = True
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -110,7 +156,7 @@ class HelpdeskTicket(models.Model):
                     elif 'Checklist Calibración' not in vals['description']:
                         vals['description'] += '<br/>' + checklist
         tickets = super(HelpdeskTicket, self).create(vals_list)
-        tickets._schedule_warehouse_activity_for_envio_retiro()
+        tickets._automatiza_sync_envio_retiro_activity()
         return tickets
         
     def write(self, vals):
@@ -123,49 +169,96 @@ class HelpdeskTicket(models.Model):
                         record.description = checklist
                     elif 'Checklist Calibración' not in record.description:
                         record.description += '<br/>' + checklist
-            self._schedule_warehouse_activity_for_envio_retiro()
+            self._automatiza_sync_envio_retiro_activity()
         return res
 
+    @api.model
+    def _safe_get_external_record_id(self, module, name, model=None):
+        xmlid = '%s.%s' % (module, name)
+        record = self.env.ref(xmlid, raise_if_not_found=False)
+        if record and (not model or record._name == model):
+            return record.id
+
+        domain = [
+            ('module', '=', module),
+            ('name', '=', name),
+        ]
+        if model:
+            domain.append(('model', '=', model))
+        ext_id = self.env['ir.model.data'].sudo().search(domain, limit=1)
+        return ext_id.res_id if ext_id else False
+
+    @api.model
+    def _get_stock_manager_job(self):
+        """Puesto 'Responsable de inventario' vía STOCK_MANAGER_JOB_EXT."""
+        job_id = self._safe_get_external_record_id(
+            STOCK_MANAGER_JOB_EXT['module'],
+            STOCK_MANAGER_JOB_EXT['name'],
+            model='hr.job',
+        )
+        if not job_id:
+            return self.env['hr.job']
+        job = self.env['hr.job'].browse(job_id)
+        return job if job.exists() else self.env['hr.job']
+
     def _get_warehouse_responsible_user(self):
-        job = self.env.ref('custom_helpdesk_maintenance.job_responsable_inventario', raise_if_not_found=False)
-        employee = False
+        """
+        Solo el usuario del empleado con el puesto de STOCK_MANAGER_JOB_EXT.
+        Sin fallbacks: si no hay nadie con ese puesto + usuario Odoo, retorna vacío.
+        """
+        job = self._get_stock_manager_job()
+        if not job:
+            return self.env['res.users']
 
-        if job and job._name == 'hr.job':
-            employee = self.env['hr.employee'].search([
-                ('job_id', '=', job.id),
-                ('active', '=', True),
-                ('user_id', '!=', False),
-            ], limit=1)
-
-        if not employee:
-            employee = self.env['hr.employee'].search([
-                ('job_id.name', 'ilike', 'Responsable de inventario'),
-                ('active', '=', True),
-                ('user_id', '!=', False),
-            ], limit=1)
-
-        if employee and employee.user_id:
-            return employee.user_id
-
-        return self.env['res.users'].search([
-            ('login', 'ilike', 'agustin'),
+        employee = self.env['hr.employee'].search([
+            ('job_id', '=', job.id),
+            ('active', '=', True),
+            ('user_id', '!=', False),
         ], limit=1)
+        if not employee or not employee.user_id:
+            return self.env['res.users']
+        return employee.user_id
 
-    def _schedule_warehouse_activity_for_envio_retiro(self):
+    def _get_envio_retiro_activities(self):
+        """Actividades automáticas de Envío/Retiro sobre estos tickets."""
+        self.ensure_one()
         activity_type = self.env.ref('mail.mail_activity_data_todo', raise_if_not_found=False)
-        user = self._get_warehouse_responsible_user()
-        if not activity_type or not user:
+        if not activity_type:
+            return self.env['mail.activity']
+        return self.env['mail.activity'].search([
+            ('res_model', '=', self._name),
+            ('res_id', '=', self.id),
+            ('activity_type_id', '=', activity_type.id),
+            ('summary', '=', 'Atender solicitud de Envío/Retiro'),
+        ])
+
+    def _automatiza_sync_envio_retiro_activity(self):
+        """
+        Sincroniza la actividad Envío/Retiro:
+        - Con responsable (XML ID + usuario Odoo): actividad solo para ese usuario.
+        - Sin responsable: no crea nada y elimina actividades automáticas previas.
+        """
+        activity_type = self.env.ref('mail.mail_activity_data_todo', raise_if_not_found=False)
+        if not activity_type:
             return
 
+        user = self._get_warehouse_responsible_user()
+
         for ticket in self.filtered(lambda item: item.ticket_type_id.name == 'Envío/Retiro'):
-            existing_activity = self.env['mail.activity'].search([
-                ('res_model', '=', ticket._name),
-                ('res_id', '=', ticket.id),
-                ('activity_type_id', '=', activity_type.id),
-                ('user_id', '=', user.id),
-                ('summary', '=', 'Atender solicitud de Envío/Retiro'),
-            ], limit=1)
-            if existing_activity:
+            activities = ticket._get_envio_retiro_activities()
+
+            if not user:
+                activities.unlink()
+                continue
+
+            wrong_activities = activities.filtered(lambda act: act.user_id != user)
+            if wrong_activities:
+                wrong_activities.unlink()
+
+            remaining = ticket._get_envio_retiro_activities().filtered(
+                lambda act: act.user_id == user
+            )
+            if remaining:
                 continue
 
             ticket.activity_schedule(
@@ -174,3 +267,7 @@ class HelpdeskTicket(models.Model):
                 summary='Atender solicitud de Envío/Retiro',
                 note='Ticket de tipo Envío/Retiro: coordinar la solicitud desde almacén.',
             )
+
+    def _schedule_warehouse_activity_for_envio_retiro(self):
+        """Compatibilidad: redirige a la sincronización correcta (sin fallbacks)."""
+        return self._automatiza_sync_envio_retiro_activity()

@@ -31,9 +31,7 @@
         <record id="type_envio_retiro" model="helpdesk.ticket.type">
             <field name="name">Envío/Retiro</field>
         </record>
-        <record id="job_responsable_inventario" model="hr.job">
-            <field name="name">Responsable de inventario</field>
-        </record>
+        <!-- No crear hr.job aquí: se usa el puesto externo _hr.job_.stockManager_extID -->
         <record id="type_preventivo_visita" model="helpdesk.ticket.type">
             <field name="name">Preventivo/Visita</field>
         </record>
