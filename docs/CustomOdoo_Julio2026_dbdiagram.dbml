@@ -1,32 +1,37 @@
 // ==========================================
 // DBML SCHEMA FOR CUSTOM ODOO MODULES
-// Actualizado Julio 2026 — fusionado con cambios
-// custom_crm_v4 | custom_project | custom_helpdesk_maintenance
+// Fuente de verdad de personalizaciones Automatiza
+// Excluye: custom_helpdesk_maintenanceV0
+//
+// Módulos:
+//   custom_crm_v4 | custom_project | custom_giras
+//   custom_maintenance | custom_helpdesk_maintenance | custom_stock_picking
+//
 // Copy and paste this code in dbdiagram.io
 // ==========================================
 
 // -------------------------------------------------------------
-// MODULE: custom_crm_v4 (antes custom_crm)
+// MODULE: custom_crm_v4
 // -------------------------------------------------------------
 Table crm_lead {
   id int [pk, increment]
-  currency_id int [ref: > res_currency.id, note: 'Moneda (Many2one)']
-  partner_id int [ref: > res_partner.id, note: 'Cliente']
+  partner_id int [ref: > res_partner.id, note: 'Cliente (nativo)']
+  currency_id int [ref: > res_currency.id, note: 'Related company currency']
 
-  // --- custom_crm_v4: Información adicional / Seguimiento ---
-  x_proyecto_id int [ref: > project_project.id, note: 'COMPUTED readonly — proyecto vinculado vía opportunity_id']
+  // Información adicional / Seguimiento
+  x_proyecto_id int [ref: > project_project.id, note: 'COMPUTED readonly — vía project.opportunity_id']
   x_complejidad varchar [note: 'Selection: bajo | normal | alto']
   x_canal_de_ingreso varchar
   x_id_cliente int [note: 'Related partner_id.id']
   x_responsable_comercial_id int [ref: > res_users.id]
   x_responsable_proyecto_id int [ref: > res_users.id]
   x_cantidad_robots int
-  // project_ids = O2M inversa (definida en custom_project)
-  // x_detalle_de_equipos = O2M → x_lista_de_robots (vía opportunity_id)
-  // x_cotizaciones = O2M → sale_order (vía opportunity_id)
-  // x_contacto_ids = M2M → res_partner (tabla rel abajo)
+  // project_ids O2M (custom_project) → project_project.opportunity_id
+  // x_detalle_de_equipos O2M → x_lista_de_robots.opportunity_id
+  // x_cotizaciones O2M → sale_order.opportunity_id
+  // x_contacto_ids M2M → crm_lead_x_contacto_rel
 
-  // Campos de Cronología
+  // Cronología
   x_studio_ingreso_consulta date
   x_studio_date_field_3vh_1jau2o5rh date [note: 'Primer Llamada']
   x_studio_videollamada date
@@ -41,11 +46,11 @@ Table crm_lead {
   x_fecha_torta_aniversario date
   x_fecha_foto_aniversario date
 
-  // Campos de Datos de Cotización
+  // Datos de Cotización
   x_studio_cotizacin_bd varchar
   x_studio_char_field_4bc_1jbo2kegr varchar [note: 'Url Cotización']
-  x_studio_modelo_comercial_1 varchar [note: 'Selection']
-  x_studio_tipo_de_cotizacin varchar [note: 'Selection']
+  x_studio_modelo_comercial_1 varchar [note: 'bd_argentina | atza_uy | otro']
+  x_studio_tipo_de_cotizacin varchar [note: 'robot | refit | otro']
   x_studio_hardware float [note: 'Monetary']
   x_studio_servicio float [note: 'Monetary']
   x_studio_descuento_aplicado_ float
@@ -54,8 +59,8 @@ Table crm_lead {
   x_studio_nmero_de_cliente int
   x_studio_nmero_de_instalacin int
 
-  // Campos de Producto Cotizado (legacy Studio)
-  x_studio_producto varchar [note: 'Selection']
+  // Producto cotizado (legacy Studio)
+  x_studio_producto varchar [note: 'smart | vmax | otro']
   x_studio_alto float
   x_studio_ancho float
   x_studio_largo float
@@ -68,21 +73,21 @@ Table crm_lead {
   x_studio_vidrios_laterales_1 int
   x_studio_vidrios_fondo int
   x_studio_vidrios_piso int
-  x_studio_ubicacin varchar [note: 'Selection']
+  x_studio_ubicacin varchar
   x_studio_software_gestion_text varchar
-  x_studio_otro_complemento varchar [note: 'HTML text']
+  x_studio_otro_complemento varchar [note: 'Html']
 
   Note: '''
-  custom_crm_v4:
+  custom_crm_v4
   - Layout Información adicional: Compañía|Contactos / Marketing|Seguimiento
-  - x_proyecto_id se calcula desde project.project.opportunity_id
+  - x_proyecto_id calculado desde project.project.opportunity_id
   '''
 }
 
 Table crm_lead_x_contacto_rel {
   lead_id int [ref: > crm_lead.id]
   partner_id int [ref: > res_partner.id]
-  Note: 'x_contacto_ids — Contactos de la empresa (M2M)'
+  Note: 'x_contacto_ids M2M — Contactos de la empresa'
 }
 
 // -------------------------------------------------------------
@@ -91,16 +96,17 @@ Table crm_lead_x_contacto_rel {
 Table project_project {
   id int [pk, increment]
   name varchar
-  opportunity_id int [unique, ref: > crm_lead.id, note: 'UNIQUE: 1 oportunidad = 1 proyecto']
-  bd_robot_code varchar [note: 'BD Código de robot']
-  bd_pid int [note: 'BD PID']
-  // robot_scenario_ids = O2M → x_lista_de_robots
-  // type_ids = M2M → project_task_type (etapas compartidas)
+  opportunity_id int [unique, ref: > crm_lead.id, note: 'UNIQUE opportunity_id_uniq']
+  bd_robot_code varchar
+  bd_pid int
+  task_count int [note: 'Computed']
+  // robot_scenario_ids O2M → x_lista_de_robots.project_id
+  // type_ids M2M → project_project_task_type_rel
 
   Note: '''
-  custom_project:
-  - Al setear opportunity_id → sync a escenarios + refresca x_proyecto_id en CRM
-  - Etapas default vinculadas a todos los proyectos
+  custom_project
+  - Sync opportunity_id → escenarios + refresca x_proyecto_id
+  - Etapas default en todos los proyectos
   '''
 }
 
@@ -108,16 +114,13 @@ Table project_task_type {
   id int [pk, increment]
   name varchar
   sequence int
-  Note: '''
-  Etapas XML custom_project:
-  A realizar | En proceso | Finalizadas | Canceladas
-  '''
+  Note: 'XML: A realizar | En proceso | Finalizadas | Canceladas'
 }
 
 Table project_project_task_type_rel {
   project_id int [ref: > project_project.id]
   type_id int [ref: > project_task_type.id]
-  Note: 'Etapas del proyecto (type_ids)'
+  Note: 'type_ids del proyecto'
 }
 
 Table x_lista_de_robots {
@@ -125,7 +128,8 @@ Table x_lista_de_robots {
   name varchar [not null]
   project_id int [ref: > project_project.id]
   opportunity_id int [ref: > crm_lead.id, note: 'readonly — sync auto desde project']
-  product_id int [ref: > product_product.id, note: 'dominio categoría Robots (XML ID)']
+  product_id int [ref: > product_product.id, note: 'dominio categ Robots XML ID']
+  is_vmax boolean [note: 'Computed stored']
   scenario int
   ffq_url varchar
   height float
@@ -145,21 +149,20 @@ Table x_lista_de_robots {
   side_glasses int
   back_glass boolean
   floor_glass boolean
-  location varchar [note: 'Selection']
+  location varchar
   other_complement text
   comments text
 
   Note: '''
-  Filtro productos:
   ROBOTS_CATEG_EXT = _product.category_.robots_extID
-  Si existe → child_of categoría Robots
-  Si no → todos los activos
+  Si existe → solo productos child_of Robots
+  Si no → todos activos
   '''
 }
 
 Table x_lista_de_robots_tag {
   id int [pk, increment]
-  name varchar [unique]
+  name varchar [unique, note: 'name_uniq']
   color int
 }
 
@@ -172,14 +175,13 @@ Table product_category {
   id int [pk, increment]
   name varchar
   parent_id int [ref: > product_category.id]
-  Note: 'XML ID: _product.category_.robots_extID'
+  Note: 'XML ID externo: _product.category_.robots_extID (no lo crea el módulo)'
 }
 
 Table product_product {
   id int [pk, increment]
   default_code varchar
   active boolean
-  // categ_id vía product.template
 }
 
 // -------------------------------------------------------------
@@ -187,8 +189,8 @@ Table product_product {
 // -------------------------------------------------------------
 Table maintenance_giras {
   id int [pk, increment]
-  name varchar [not null, note: 'Nombre']
-  description text [note: 'Descripción']
+  name varchar [not null]
+  description text
 }
 
 // -------------------------------------------------------------
@@ -196,20 +198,23 @@ Table maintenance_giras {
 // -------------------------------------------------------------
 Table stock_picking {
   id int [pk, increment]
-  x_mat_equipo_destino int [ref: > maintenance_equipment.id, note: 'Equipo destino (Many2one)']
+  x_mat_equipo_destino int [ref: > maintenance_equipment.id, note: 'Equipo destino']
+  x_mat_empleado_destino int [ref: > hr_employee.id, note: 'Empleado destino']
+  x_fecha_recepcion date [note: 'Fecha de recepción']
 }
 
 // -------------------------------------------------------------
-// MODULE: custom_maintenance & custom_helpdesk_maintenance
+// MODULE: custom_maintenance
+// (+ campos extra en equipment desde custom_helpdesk_maintenance)
 // -------------------------------------------------------------
 Table maintenance_equipment {
   id int [pk, increment]
 
-  // From custom_maintenance
-  x_mat_cuenta_analitica int [ref: > account_analytic_account.id, note: 'Cuenta analítica']
-  x_mat_oportunidad int [ref: > crm_lead.id, note: 'Oportunidad']
-  x_mat_modelo int [ref: > product_template.id, note: 'Modelo']
-  x_mat_gira int [ref: > maintenance_giras.id, note: 'Gira']
+  // custom_maintenance
+  x_mat_cuenta_analitica int [ref: > account_analytic_account.id]
+  x_mat_oportunidad int [ref: > crm_lead.id]
+  x_mat_modelo int [ref: > product_template.id]
+  x_mat_gira int [ref: > maintenance_giras.id]
   x_mat_alto float
   x_mat_largo float
   x_mat_ancho float
@@ -225,91 +230,94 @@ Table maintenance_equipment {
   x_mat_transporte int
   x_mat_ubicacion varchar
 
-  // From custom_helpdesk_maintenance
-  partner_id int [ref: > res_partner.id, note: 'Cliente (Many2one)']
-  // suspended_support / robot_out_of_service (flags usados en banners)
+  // custom_helpdesk_maintenance
+  partner_id int [ref: > res_partner.id, note: 'Cliente']
+  robot_out_of_service boolean [note: 'default False — banners']
+  suspended_support boolean [note: 'default False — banners']
 }
 
+// -------------------------------------------------------------
+// MODULE: custom_helpdesk_maintenance
+// -------------------------------------------------------------
 Table helpdesk_ticket {
   id int [pk, increment]
-
-  // From custom_helpdesk_maintenance
-  ticket_type_id int [ref: > helpdesk_ticket_type.id]
-  equipment_id int [ref: > maintenance_equipment.id, note: 'Equipo']
-  tour_id int [ref: > maintenance_giras.id, note: 'Gira (related)']
+  ticket_type_id int [ref: > helpdesk_ticket_type.id, note: 'nativo; tipos custom en data XML']
+  equipment_id int [ref: > maintenance_equipment.id]
+  tour_id int [ref: > maintenance_giras.id, note: 'Related stored ← equipment.x_mat_gira']
   analytic_account_id int [ref: > account_analytic_account.id]
-  progress varchar [note: 'Progreso (Selection)']
+  progress varchar [note: '0|25|50|75|100']
   x_resuelto_ia boolean
-  parent_ticket_id int [ref: > helpdesk_ticket.id, note: 'Ticket Padre']
-  maintenance_request_id int [ref: > maintenance_request.id, note: 'Solicitud legacy']
-  maintenance_count int [note: 'Computed Field']
-  // maintenance_request_ids M2M (tabla rel abajo)
+  suspended_support boolean [note: 'Related stored ← equipment']
+  robot_out_of_service boolean [note: 'Related stored ← equipment']
+  parent_ticket_id int [ref: > helpdesk_ticket.id]
+  maintenance_request_id int [ref: > maintenance_request.id, note: 'Legacy']
+  maintenance_count int [note: 'Computed']
+  // employee_follower_ids M2M → helpdesk_ticket_hr_employee_rel
+  // evidence_ids M2M → helpdesk_ticket_ir_attachment_rel
+  // maintenance_request_ids M2M → helpdesk_ticket_maintenance_request_rel
 
   Note: '''
-  Envío/Retiro → actividad automática:
-  STOCK_MANAGER_JOB_EXT = _hr.job_.stockManager_extID
-  Empleado con ese puesto + user_id → mail.activity
-  Si no hay responsable válido → NO crear actividad
+  Envío/Retiro → actividad SOLO "Atender solicitud de Envío/Retiro"
+  STOCK_MANAGER_JOB_EXT = _hr.job_.stockManager_extID (puesto ya existente, NO lo crea el módulo)
+  Empleado con job + user_id → asigna actividad
+  Si no → no crea esa actividad (no afecta otras actividades del sistema)
   '''
 }
 
 Table helpdesk_ticket_type {
   id int [pk, increment]
-  name varchar [note: 'Envío/Retiro, Calibración, etc.']
+  name varchar [note: 'data XML: Envío/Retiro, Calibración, Commissioning, etc.']
 }
 
-// M2M relations for helpdesk_ticket
 Table helpdesk_ticket_hr_employee_rel {
   helpdesk_ticket_id int [ref: > helpdesk_ticket.id]
   hr_employee_id int [ref: > hr_employee.id]
-  Note: 'Seguidores del ticket (M2M)'
+  Note: 'employee_follower_ids'
 }
 
 Table helpdesk_ticket_ir_attachment_rel {
   helpdesk_ticket_id int [ref: > helpdesk_ticket.id]
   ir_attachment_id int [ref: > ir_attachment.id]
-  Note: 'Evidencia (M2M)'
+  Note: 'evidence_ids'
 }
 
 Table helpdesk_ticket_maintenance_request_rel {
   ticket_id int [ref: > helpdesk_ticket.id]
   request_id int [ref: > maintenance_request.id]
-  Note: 'maintenance_request_ids / ticket_ids (M2M)'
+  Note: 'maintenance_request_ids / ticket_ids'
 }
 
 Table maintenance_request {
   id int [pk, increment]
-
-  // From custom_helpdesk_maintenance
-  ticket_origin_id int [ref: > helpdesk_ticket.id, note: 'Origen del Ticket']
-  partner_id int [ref: > res_partner.id, note: 'Cliente']
-  tour_id int [ref: > maintenance_giras.id, note: 'Gira']
-  assigned_employee_id int [ref: > hr_employee.id, note: 'Empleado asignado a Mantenimiento']
-  equipment_manager_id int [ref: > hr_employee.id, note: 'Responsable de equipo (Related)']
-  ticket_count int [note: 'Computed Field']
-  is_overdue boolean [note: 'Computed Field']
+  ticket_origin_id int [ref: > helpdesk_ticket.id, note: 'Origen legacy']
+  partner_id int [ref: > res_partner.id]
+  tour_id int [ref: > maintenance_giras.id, note: 'Related stored ← equipment.x_mat_gira']
+  robot_out_of_service boolean [note: 'Related stored ← equipment']
+  assigned_employee_id int [ref: > hr_employee.id]
+  equipment_manager_id int [ref: > hr_employee.id, note: 'Related ← equipment.employee_id']
+  ticket_count int [note: 'Computed']
+  is_overdue boolean [note: 'Computed']
+  kanban_state varchar [note: 'Computed stored: normal|done|blocked']
 }
 
-// -------------------------------------------------------------
-// Automatización Envío/Retiro (HR + mail.activity)
-// -------------------------------------------------------------
+// Automatización Envío/Retiro (consulta; no crea hr.job)
 Table hr_job {
   id int [pk, increment]
   name varchar
-  Note: 'XML ID: _hr.job_.stockManager_extID → Responsable de inventario'
+  Note: 'Externo producción: _hr.job_.stockManager_extID — el módulo NO lo crea'
 }
 
 Table mail_activity {
   id int [pk, increment]
-  res_model varchar [note: 'helpdesk.ticket']
+  res_model varchar
   res_id int
   user_id int [ref: > res_users.id]
-  summary varchar [note: 'Atender solicitud de Envío/Retiro']
+  summary varchar [note: 'Solo se intercepta: Atender solicitud de Envío/Retiro']
   note text
 }
 
 // -------------------------------------------------------------
-// EXTERNAL / NATIVE ODOO TABLES REFERENCED
+// NATIVE / SHARED REFERENCES
 // -------------------------------------------------------------
 Table res_currency {
   id int [pk, increment]
@@ -342,7 +350,7 @@ Table hr_employee {
   id int [pk, increment]
   name varchar
   job_id int [ref: > hr_job.id]
-  user_id int [ref: > res_users.id, note: 'Obligatorio para recibir actividad Envío/Retiro']
+  user_id int [ref: > res_users.id, note: 'Requerido para actividad Envío/Retiro']
   active boolean
 }
 
